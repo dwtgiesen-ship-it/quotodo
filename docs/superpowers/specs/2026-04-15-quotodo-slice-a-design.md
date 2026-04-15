@@ -240,8 +240,10 @@ src/
 
 ### AI Pipeline
 - 30-second timeout on Claude API calls (AbortController)
-- On timeout/network error: user-friendly message with retry button
+- On timeout/network error: user-friendly message with retry button, original input preserved in textarea
 - On Zod validation failure: one auto-retry, then fallback skeleton (no nulls)
+- Explicit "Retry" button on failure — re-submits the same input, no re-typing needed
+- Basic rate limiting: max 10 AI generations per user per hour (server-side check)
 - Log all failures with input length + error type (no PII)
 
 ### Auth
@@ -250,6 +252,7 @@ src/
 
 ### Quote Editor
 - Debounced auto-save on draft quotes (Server Action, no page reload)
+- "Last saved" timestamp indicator in editor (e.g. "Last saved 2 minutes ago"), updates on each successful save
 - Save failure: toast notification with retry, data stays in form state (no data loss)
 - Prevent "Mark as Final" if no line items or any unit_price is 0
 
