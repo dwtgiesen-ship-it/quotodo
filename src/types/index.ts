@@ -21,6 +21,7 @@ export interface Company {
   default_payment_terms: number;
   default_quote_validity: number;
   default_currency: string;
+  default_deposit_percent: number;
   created_at: string;
   updated_at: string;
 }
@@ -146,6 +147,10 @@ export interface Invoice {
   paid_at: string | null;
   payment_reference: string | null;
   payment_method: "bank_transfer" | "cash" | "other" | null;
+  deposit_required_percent: number;
+  deposit_amount: number;
+  deposit_paid: boolean;
+  deposit_paid_at: string | null;
   created_at: string;
   updated_at: string;
 }

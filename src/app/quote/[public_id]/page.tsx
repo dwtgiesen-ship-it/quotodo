@@ -39,7 +39,12 @@ export default async function PublicQuotePage({
 
   const q = quote as Quote;
   const c = company as Company;
-  const items = (lineItems ?? []) as QuoteLineItem[];
+  // Normalize line items — legacy quotes may not have optional/default_selected
+  const items: QuoteLineItem[] = (lineItems ?? []).map((li) => ({
+    ...li,
+    optional: li.optional ?? false,
+    default_selected: li.default_selected ?? true,
+  }));
   const accent = c.brand_color_primary || "#111111";
 
   return (
@@ -173,8 +178,8 @@ export default async function PublicQuotePage({
             status={q.status}
             acceptedAt={q.accepted_at}
             rejectedAt={q.rejected_at}
-            acceptedSelection={q.accepted_selection}
-            acceptedTotal={q.accepted_total}
+            acceptedSelection={q.accepted_selection ?? null}
+            acceptedTotal={q.accepted_total ?? null}
             accent={accent}
           />
         )}

@@ -99,6 +99,16 @@ export async function createInvoiceFromQuote(
   dueDate.setDate(dueDate.getDate() + (quote.payment_terms ?? 30));
   const dueDateStr = dueDate.toISOString().split("T")[0];
 
+  // Fetch company default deposit percent
+  const { data: company } = await supabase
+    .from("companies")
+    .select("default_deposit_percent")
+    .eq("id", quote.company_id)
+    .single();
+
+  const depositPercent = company?.default_deposit_percent ?? 30;
+  const depositAmount = Math.round(totals.total * (depositPercent / 100));
+
   // Insert invoice
   const { data: invoice, error: insertErr } = await supabase
     .from("invoices")
@@ -119,6 +129,8 @@ export async function createInvoiceFromQuote(
       status: "draft",
       issued_at: issuedAt,
       due_date: dueDateStr,
+      deposit_required_percent: depositPercent,
+      deposit_amount: depositAmount,
     })
     .select("id")
     .single();
@@ -287,6 +299,53 @@ export async function markInvoiceAsPaid(
   const { error } = await supabase
     .from("invoices")
     .update(updates)
+    .eq("id", invoiceId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath(`/invoices/${invoiceId}`);
+  revalidatePath("/invoices");
+  revalidatePath("/dashboard");
+
+  return { success: true };
+}
+
+// -------- Mark deposit as paid --------
+
+export async function markDepositAsPaid(
+  invoiceId: string
+): Promise<ActionResult<void>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const { data: invoice } = await supabase
+    .from("invoices")
+    .select("deposit_paid")
+    .eq("id", invoiceId)
+    .single();
+
+  if (!invoice) {
+    return { success: false, error: "Invoice not found" };
+  }
+
+  if (invoice.deposit_paid) {
+    return { success: false, error: "Deposit is already marked as paid" };
+  }
+
+  const { error } = await supabase
+    .from("invoices")
+    .update({
+      deposit_paid: true,
+      deposit_paid_at: new Date().toISOString(),
+    })
     .eq("id", invoiceId);
 
   if (error) {

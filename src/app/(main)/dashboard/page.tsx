@@ -50,11 +50,15 @@ export default async function DashboardPage() {
       ? Math.round(paymentTimes.reduce((a, b) => a + b, 0) / paymentTimes.length)
       : null;
 
+  // Deals won = invoices where deposit has been paid (or fully paid)
+  const dealsWon = invoices.filter((i) => i.deposit_paid || i.status === "paid").length;
+
   const stats = {
     // Quote pipeline
     draft: quotes.filter((q) => q.status === "draft").length,
     sent: quotes.filter((q) => q.status === "sent").length,
     accepted: quotes.filter((q) => q.status === "accepted").length,
+    dealsWon,
     invoicesOutstanding: invoices.filter((i) => i.status === "sent").length,
 
     // Cash flow
@@ -91,7 +95,7 @@ export default async function DashboardPage() {
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Pipeline
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           <div className="border rounded-lg p-4">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Drafts</p>
             <p className="text-2xl font-bold mt-1">{stats.draft}</p>
@@ -103,6 +107,12 @@ export default async function DashboardPage() {
           <div className="border rounded-lg p-4">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Accepted</p>
             <p className="text-2xl font-bold mt-1 text-green-700">{stats.accepted}</p>
+          </div>
+          <div className="border rounded-lg p-4 bg-green-50 border-green-200">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">
+              Deals won
+            </p>
+            <p className="text-2xl font-bold mt-1 text-green-700">{stats.dealsWon}</p>
           </div>
           <div className="border rounded-lg p-4">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Outstanding</p>

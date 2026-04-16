@@ -65,10 +65,25 @@ export default async function QuoteDetailPage({
     }
   }
 
+  // Normalize line items — legacy quotes may not have optional/default_selected
+  const normalizedLineItems = quoteResult.data.lineItems.map((li) => ({
+    ...li,
+    optional: li.optional ?? false,
+    default_selected: li.default_selected ?? true,
+  }));
+
+  // Normalize quote — legacy quotes may not have current_version, accepted_selection, accepted_total
+  const normalizedQuote = {
+    ...quoteResult.data.quote,
+    current_version: quoteResult.data.quote.current_version ?? 1,
+    accepted_selection: quoteResult.data.quote.accepted_selection ?? null,
+    accepted_total: quoteResult.data.quote.accepted_total ?? null,
+  };
+
   return (
     <QuoteView
-      quote={quoteResult.data.quote}
-      lineItems={quoteResult.data.lineItems}
+      quote={normalizedQuote}
+      lineItems={normalizedLineItems}
       brandColor={brandColor}
       versions={versions}
     />

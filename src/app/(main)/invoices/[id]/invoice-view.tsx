@@ -10,6 +10,7 @@ import { formatCents, isOverdue, daysOverdue } from "@/lib/utils";
 import {
   markInvoiceAsSent,
   markInvoiceAsPaid,
+  markDepositAsPaid,
   getReminderTextsForInvoice,
 } from "@/lib/actions/invoices";
 import type { Invoice } from "@/types";
@@ -23,7 +24,7 @@ export function InvoiceView({
 }) {
   const router = useRouter();
   const accent = brandColor || "#111111";
-  const [busy, setBusy] = useState<"send" | "paid" | null>(null);
+  const [busy, setBusy] = useState<"send" | "paid" | "deposit" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Payment modal state
@@ -40,6 +41,15 @@ export function InvoiceView({
 
   const overdue = isOverdue(invoice.status, invoice.due_date);
   const overdueDays = invoice.due_date && overdue ? daysOverdue(invoice.due_date) : 0;
+
+  async function handleMarkDepositPaid() {
+    setBusy("deposit");
+    setError(null);
+    const res = await markDepositAsPaid(invoice.id);
+    if (!res.success) setError(res.error || "Failed");
+    router.refresh();
+    setBusy(null);
+  }
 
   async function handleMarkSent() {
     setBusy("send");
@@ -137,6 +147,62 @@ export function InvoiceView({
               Due by {new Date(invoice.due_date).toLocaleDateString("nl-NL")}
             </p>
           )}
+        </div>
+      )}
+
+      {/* Deposit status */}
+      {invoice.deposit_amount > 0 && (
+        <div
+          className={`rounded-lg p-4 border ${
+            invoice.deposit_paid
+              ? "bg-green-50 border-green-200"
+              : "bg-amber-50 border-amber-200"
+          }`}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p
+                className={`text-sm font-semibold ${
+                  invoice.deposit_paid ? "text-green-800" : "text-amber-900"
+                }`}
+              >
+                {invoice.deposit_paid
+                  ? "✓ Deposit paid"
+                  : `Deposit required (${invoice.deposit_required_percent}%)`}
+              </p>
+              <p
+                className={`text-xs mt-1 ${
+                  invoice.deposit_paid ? "text-green-700" : "text-amber-800"
+                }`}
+              >
+                {formatCents(invoice.deposit_amount, invoice.currency)} of{" "}
+                {formatCents(invoice.total, invoice.currency)} total
+                {invoice.deposit_paid &&
+                  invoice.deposit_paid_at &&
+                  ` · paid on ${new Date(invoice.deposit_paid_at).toLocaleDateString(
+                    "nl-NL"
+                  )}`}
+                {!invoice.deposit_paid && (
+                  <>
+                    {" · Remaining balance "}
+                    {formatCents(
+                      invoice.total - invoice.deposit_amount,
+                      invoice.currency
+                    )}
+                  </>
+                )}
+              </p>
+            </div>
+            {!invoice.deposit_paid && (
+              <Button
+                size="sm"
+                onClick={handleMarkDepositPaid}
+                disabled={busy !== null}
+              >
+                {busy === "deposit" ? "Marking..." : "Mark Deposit as Paid"}
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
