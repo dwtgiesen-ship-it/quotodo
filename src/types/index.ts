@@ -51,6 +51,8 @@ export interface Quote {
   ai_edited: boolean;
   accepted_at: string | null;
   rejected_at: string | null;
+  accepted_selection: string[] | null;
+  accepted_total: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -65,6 +67,8 @@ export interface QuoteLineItem {
   vat_rate: number;
   line_total: number; // cents, excl. VAT
   sort_order: number;
+  optional: boolean;
+  default_selected: boolean;
   created_at: string;
 }
 

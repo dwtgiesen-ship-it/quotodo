@@ -55,12 +55,14 @@ export async function generateAndSaveQuote(
     return { success: false, error: "Failed to generate quote number: " + numErr.message };
   }
 
-  // Convert AI line items to DB format and calculate totals
-  const lineItemsForCalc = aiData.line_items.map((li) => ({
-    quantity: li.quantity,
-    unit_price: li.unit_price_cents ?? 0,
-    vat_rate: li.vat_rate,
-  }));
+  // Totals reflect default selection: non-optional + optional-selected items
+  const lineItemsForCalc = aiData.line_items
+    .filter((li) => !li.optional || li.default_selected)
+    .map((li) => ({
+      quantity: li.quantity,
+      unit_price: li.unit_price_cents ?? 0,
+      vat_rate: li.vat_rate,
+    }));
   const totals = calculateQuoteTotals(lineItemsForCalc);
 
   // Insert quote
@@ -105,6 +107,8 @@ export async function generateAndSaveQuote(
       vat_rate: li.vat_rate,
       line_total: calculateLineTotal(li.quantity, li.unit_price_cents ?? 0),
       sort_order: i,
+      optional: li.optional,
+      default_selected: li.default_selected,
     }));
 
     const { error: itemsErr } = await supabase
@@ -202,6 +206,8 @@ export interface UpdateQuotePayload {
     unit_price: number; // cents
     vat_rate: number;
     sort_order: number;
+    optional?: boolean;
+    default_selected?: boolean;
   }[];
 }
 
@@ -220,8 +226,11 @@ export async function updateQuote(
   const shouldBumpVersion =
     existingQuote?.status === "sent" || existingQuote?.status === "accepted";
 
-  // Recalculate totals
-  const totals = calculateQuoteTotals(payload.line_items);
+  // Totals reflect default selection: non-optional + optional-selected items
+  const itemsForTotals = payload.line_items.filter(
+    (li) => !li.optional || li.default_selected !== false
+  );
+  const totals = calculateQuoteTotals(itemsForTotals);
 
   // Build update payload
   const quoteUpdate: Record<string, unknown> = {
@@ -271,6 +280,8 @@ export async function updateQuote(
       vat_rate: li.vat_rate,
       line_total: calculateLineTotal(li.quantity, li.unit_price),
       sort_order: i,
+      optional: li.optional ?? false,
+      default_selected: li.default_selected ?? true,
     }));
 
     const { error: insErr } = await supabase

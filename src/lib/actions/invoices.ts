@@ -60,8 +60,17 @@ export async function createInvoiceFromQuote(
     return { success: false, error: itemsErr.message };
   }
 
+  // If client accepted with a specific selection, only invoice those items.
+  // Otherwise fall back to default selection (non-optional + default-selected).
+  const sourceItems = (lineItems ?? []).filter((li) => {
+    if (quote.accepted_selection && Array.isArray(quote.accepted_selection)) {
+      return quote.accepted_selection.includes(li.id);
+    }
+    return !li.optional || li.default_selected;
+  });
+
   // Convert to invoice line items (flat jsonb)
-  const invoiceLineItems: InvoiceLineItem[] = (lineItems ?? []).map((li) => ({
+  const invoiceLineItems: InvoiceLineItem[] = sourceItems.map((li) => ({
     description: li.description,
     quantity: li.quantity,
     unit: li.unit,

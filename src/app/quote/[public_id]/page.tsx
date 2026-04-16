@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatCents, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import type { Quote, QuoteLineItem, Company } from "@/types";
-import { AcceptActions } from "./accept-actions";
+import { InteractivePricing } from "./interactive-pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -164,75 +164,19 @@ export default async function PublicQuotePage({
           </section>
         )}
 
-        {/* Pricing */}
+        {/* Pricing + Accept (interactive) */}
         {items.length > 0 && (
-          <section>
-            <h2
-              className="text-base font-semibold mb-3"
-              style={{ color: accent }}
-            >
-              Pricing
-            </h2>
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b-2" style={{ borderColor: accent }}>
-                  <th className="text-left pb-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">
-                    Description
-                  </th>
-                  <th className="text-right pb-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">
-                    Qty
-                  </th>
-                  <th className="text-right pb-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-24">
-                    Unit
-                  </th>
-                  <th className="text-right pb-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-28">
-                    Price
-                  </th>
-                  <th className="text-right pb-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-28">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.id} className="border-b last:border-0">
-                    <td className="py-3">{item.description}</td>
-                    <td className="py-3 text-right">{item.quantity}</td>
-                    <td className="py-3 text-right text-muted-foreground">
-                      {item.unit}
-                    </td>
-                    <td className="py-3 text-right">
-                      {formatCents(item.unit_price, q.currency)}
-                    </td>
-                    <td className="py-3 text-right">
-                      {formatCents(item.line_total, q.currency)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Totals */}
-            <div className="mt-4 flex justify-end">
-              <div className="w-64 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span>{formatCents(q.subtotal, q.currency)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">VAT</span>
-                  <span>{formatCents(q.vat_amount, q.currency)}</span>
-                </div>
-                <div
-                  className="flex justify-between pt-2 border-t-2 font-bold text-base"
-                  style={{ borderColor: accent, color: accent }}
-                >
-                  <span>Total</span>
-                  <span>{formatCents(q.total, q.currency)}</span>
-                </div>
-              </div>
-            </div>
-          </section>
+          <InteractivePricing
+            publicId={q.public_id}
+            currency={q.currency}
+            items={items}
+            status={q.status}
+            acceptedAt={q.accepted_at}
+            rejectedAt={q.rejected_at}
+            acceptedSelection={q.accepted_selection}
+            acceptedTotal={q.accepted_total}
+            accent={accent}
+          />
         )}
 
         {/* Footer */}
@@ -255,14 +199,6 @@ export default async function PublicQuotePage({
           )}
         </div>
 
-        {/* Accept / Reject actions */}
-        <AcceptActions
-          publicId={q.public_id}
-          status={q.status}
-          acceptedAt={q.accepted_at}
-          rejectedAt={q.rejected_at}
-          accent={accent}
-        />
       </div>
 
       <p className="text-center text-xs text-muted-foreground mt-6">

@@ -26,7 +26,9 @@ Return ONLY valid JSON matching this exact schema:
       "quantity": 1,
       "unit": "per stuk",
       "unit_price_cents": null,
-      "vat_rate": 21
+      "vat_rate": 21,
+      "optional": false,
+      "default_selected": true
     }
   ],
   "payment_terms_days": 30,
@@ -37,7 +39,13 @@ Rules:
 - If pricing is mentioned, convert to cents (e.g. €150 = 15000) and set unit_price_cents
 - If pricing is NOT mentioned, set unit_price_cents to null
 - Respond in the same language as the input
-- Return ONLY the JSON object, no markdown, no explanation`;
+- Return ONLY the JSON object, no markdown, no explanation
+
+Optional items:
+- Mark items as optional:true when they are clearly add-ons or upgrades the client could skip (e.g. "transport", "installation", "training", "extended warranty", "service plan", "additional revisions")
+- Mark the core product/service as optional:false (always required)
+- For optional items, set default_selected:true if commonly included, false if truly extra
+- If the input doesn't clearly indicate optionality, leave optional:false`;
 
 export async function generateQuote(
   input: string

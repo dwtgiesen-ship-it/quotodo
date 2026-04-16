@@ -19,6 +19,8 @@ export const AILineItemSchema = z.object({
   unit: z.string().default("per stuk"),
   unit_price_cents: z.number().nullable().default(null), // null = user must fill in
   vat_rate: z.number().default(21),
+  optional: z.boolean().default(false),
+  default_selected: z.boolean().default(true),
 });
 
 export type AILineItem = z.infer<typeof AILineItemSchema>;
@@ -75,6 +77,8 @@ export const QuoteLineItemFormSchema = z.object({
   unit_price: z.number().int().min(0, "Price cannot be negative"), // cents
   vat_rate: z.number().default(21),
   sort_order: z.number().int().default(0),
+  optional: z.boolean().default(false),
+  default_selected: z.boolean().default(true),
 });
 
 export type QuoteLineItemForm = z.infer<typeof QuoteLineItemFormSchema>;

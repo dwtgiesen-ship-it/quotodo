@@ -19,6 +19,8 @@ interface EditableLineItem {
   unit_price: number; // cents
   vat_rate: number;
   sort_order: number;
+  optional: boolean;
+  default_selected: boolean;
 }
 
 export function QuoteView({
@@ -127,12 +129,21 @@ export function QuoteView({
       unit_price: li.unit_price,
       vat_rate: li.vat_rate,
       sort_order: li.sort_order,
+      optional: li.optional,
+      default_selected: li.default_selected,
     }))
   );
 
-  const totals = calculateQuoteTotals(items);
+  // Totals reflect default selection in the editor
+  const totals = calculateQuoteTotals(
+    items.filter((li) => !li.optional || li.default_selected)
+  );
 
-  function updateItem(index: number, field: keyof EditableLineItem, value: string | number) {
+  function updateItem(
+    index: number,
+    field: keyof EditableLineItem,
+    value: string | number | boolean
+  ) {
     setItems((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [field]: value };
@@ -150,6 +161,8 @@ export function QuoteView({
         unit_price: 0,
         vat_rate: 21,
         sort_order: prev.length,
+        optional: false,
+        default_selected: true,
       },
     ]);
   }
@@ -194,17 +207,30 @@ export function QuoteView({
         unit_price: li.unit_price,
         vat_rate: li.vat_rate,
         sort_order: li.sort_order,
+        optional: li.optional,
+        default_selected: li.default_selected,
       }))
     );
     setEditing(false);
     setError(null);
   }
 
-  // Accepted/rejected quotes are not "locked" — editing creates a new revision
-  // But we display a warning if they try to edit.
+  // Only rejected quotes are locked. Sent/accepted quotes can be edited —
+  // which creates a new version and resets status to draft.
+  const isLocked = quote.status === "rejected";
   const needsRevisionWarning =
-    quote.status === "accepted" || quote.status === "rejected";
-  const isLocked = false;
+    quote.status === "sent" || quote.status === "accepted";
+
+  // Client-selected options on accepted quote
+  const hasOptionalItems = lineItems.some((li) => li.optional);
+  const selectedLineItems = quote.accepted_selection
+    ? lineItems.filter((li) => quote.accepted_selection!.includes(li.id))
+    : lineItems.filter((li) => !li.optional || li.default_selected);
+  const skippedOptional = quote.accepted_selection
+    ? lineItems.filter(
+        (li) => li.optional && !quote.accepted_selection!.includes(li.id)
+      )
+    : [];
 
   return (
     <div className="p-8 max-w-3xl mx-auto space-y-8">
@@ -230,6 +256,48 @@ export function QuoteView({
           </Button>
         </div>
       )}
+
+      {/* Client-selected options — only show when accepted AND had optional items */}
+      {quote.status === "accepted" && hasOptionalItems && quote.accepted_selection && (
+        <div className="border rounded-lg p-4 bg-muted/20">
+          <p className="text-sm font-semibold mb-2">Client selected options</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                Included
+              </p>
+              <ul className="text-sm space-y-0.5">
+                {selectedLineItems.map((li) => (
+                  <li key={li.id}>
+                    ✓ {li.description}
+                    {li.optional && (
+                      <span className="ml-1 text-xs text-muted-foreground">(optional)</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {skippedOptional.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  Declined
+                </p>
+                <ul className="text-sm space-y-0.5 text-muted-foreground">
+                  {skippedOptional.map((li) => (
+                    <li key={li.id}>✕ {li.description}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          {quote.accepted_total !== null && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Accepted total: {(quote.accepted_total / 100).toLocaleString("nl-NL", { style: "currency", currency: quote.currency })}
+            </p>
+          )}
+        </div>
+      )}
+
       {quote.status === "rejected" && (
         <div className="rounded-lg bg-red-50 border border-red-200 p-4">
           <p className="text-sm font-semibold text-red-800">
@@ -240,6 +308,9 @@ export function QuoteView({
                 month: "long",
                 year: "numeric",
               })}`}
+          </p>
+          <p className="text-xs text-red-700 mt-1">
+            Editing is locked. Create a new quote if you want to start fresh.
           </p>
         </div>
       )}
@@ -442,12 +513,47 @@ export function QuoteView({
               <tr key={i} className="border-b last:border-0 align-middle">
                 <td className="py-2">
                   {editing ? (
-                    <Input
-                      value={item.description}
-                      onChange={(e) => updateItem(i, "description", e.target.value)}
-                    />
+                    <div className="space-y-1">
+                      <Input
+                        value={item.description}
+                        onChange={(e) => updateItem(i, "description", e.target.value)}
+                      />
+                      <div className="flex gap-3 text-xs">
+                        <label className="flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={item.optional}
+                            onChange={(e) =>
+                              updateItem(i, "optional", e.target.checked)
+                            }
+                          />
+                          <span className="text-muted-foreground">Optional</span>
+                        </label>
+                        {item.optional && (
+                          <label className="flex items-center gap-1 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={item.default_selected}
+                              onChange={(e) =>
+                                updateItem(i, "default_selected", e.target.checked)
+                              }
+                            />
+                            <span className="text-muted-foreground">
+                              Selected by default
+                            </span>
+                          </label>
+                        )}
+                      </div>
+                    </div>
                   ) : (
-                    item.description
+                    <div>
+                      {item.description}
+                      {item.optional && (
+                        <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                          Optional{!item.default_selected && " · opt-in"}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </td>
                 <td className="py-2 text-right">
