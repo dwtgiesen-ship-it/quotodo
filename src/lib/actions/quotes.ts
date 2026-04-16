@@ -5,6 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { PasteInputSchema, type QuoteAIResponse } from "@/lib/validations";
 import { generateQuote } from "@/lib/ai";
 import { sendQuoteEmail } from "@/lib/email";
+import {
+  snapshotQuoteAsVersion,
+  createNewQuoteVersion,
+} from "@/lib/actions/quote-versions";
 import { calculateLineTotal, calculateQuoteTotals } from "@/lib/utils";
 import type { ActionResult, Quote, QuoteLineItem } from "@/types";
 
@@ -112,6 +116,9 @@ export async function generateAndSaveQuote(
     }
   }
 
+  // Snapshot as version 1
+  await snapshotQuoteAsVersion(quote.id, 1);
+
   return { success: true, data: { id: quote.id } };
 }
 
@@ -200,24 +207,44 @@ export interface UpdateQuotePayload {
 
 export async function updateQuote(
   payload: UpdateQuotePayload
-): Promise<ActionResult<void>> {
+): Promise<ActionResult<{ newVersion?: number }>> {
   const supabase = await createClient();
+
+  // Check current quote state — if it was already sent, we create a new version
+  const { data: existingQuote } = await supabase
+    .from("quotes")
+    .select("status")
+    .eq("id", payload.id)
+    .single();
+
+  const shouldBumpVersion =
+    existingQuote?.status === "sent" || existingQuote?.status === "accepted";
 
   // Recalculate totals
   const totals = calculateQuoteTotals(payload.line_items);
 
-  // Update quote
+  // Build update payload
+  const quoteUpdate: Record<string, unknown> = {
+    title: payload.title,
+    summary: payload.summary,
+    timeline: payload.timeline,
+    subtotal: totals.subtotal,
+    vat_amount: totals.vatAmount,
+    total: totals.total,
+    ai_edited: true,
+  };
+
+  // If revising a sent/accepted quote, reset status to draft
+  if (shouldBumpVersion) {
+    quoteUpdate.status = "draft";
+    // Clear the accept/reject timestamps since this is a new revision
+    quoteUpdate.accepted_at = null;
+    quoteUpdate.rejected_at = null;
+  }
+
   const { error: quoteErr } = await supabase
     .from("quotes")
-    .update({
-      title: payload.title,
-      summary: payload.summary,
-      timeline: payload.timeline,
-      subtotal: totals.subtotal,
-      vat_amount: totals.vatAmount,
-      total: totals.total,
-      ai_edited: true,
-    })
+    .update(quoteUpdate)
     .eq("id", payload.id);
 
   if (quoteErr) {
@@ -255,7 +282,15 @@ export async function updateQuote(
     }
   }
 
-  return { success: true };
+  // If this is a revision, snapshot the NEW state as the next version
+  if (shouldBumpVersion) {
+    const versionResult = await createNewQuoteVersion(payload.id);
+    if (versionResult.success && versionResult.data) {
+      return { success: true, data: { newVersion: versionResult.data.versionNumber } };
+    }
+  }
+
+  return { success: true, data: {} };
 }
 
 // -------- Old AI-only generator (kept for reference if needed) --------

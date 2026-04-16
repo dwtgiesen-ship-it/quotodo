@@ -71,3 +71,31 @@ export function daysFromNow(days: number): string {
   date.setDate(date.getDate() + days);
   return date.toISOString().split("T")[0];
 }
+
+/** Days between two ISO date strings (positive if b is after a) */
+export function daysBetween(a: string, b: string): number {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const dateA = new Date(a);
+  const dateB = new Date(b);
+  dateA.setHours(0, 0, 0, 0);
+  dateB.setHours(0, 0, 0, 0);
+  return Math.round((dateB.getTime() - dateA.getTime()) / msPerDay);
+}
+
+/** Check if an invoice is overdue. Only applies to "sent" status. */
+export function isOverdue(status: string, dueDate: string | null): boolean {
+  if (status !== "sent" || !dueDate) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+  return due < today;
+}
+
+/** Days past the due date. Returns 0 or positive number. */
+export function daysOverdue(dueDate: string): number {
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+  const diff = daysBetween(dueDate, todayStr);
+  return Math.max(0, diff);
+}

@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCents, calculateQuoteTotals, toCents } from "@/lib/utils";
+import Link from "next/link";
 import { updateQuote, sendQuoteByEmail, markQuoteAsSent } from "@/lib/actions/quotes";
 import { createInvoiceFromQuote } from "@/lib/actions/invoices";
-import type { Quote, QuoteLineItem } from "@/types";
+import type { Quote, QuoteLineItem, QuoteVersion } from "@/types";
 
 interface EditableLineItem {
   id?: string;
@@ -24,10 +25,12 @@ export function QuoteView({
   quote,
   lineItems,
   brandColor,
+  versions,
 }: {
   quote: Quote;
   lineItems: QuoteLineItem[];
   brandColor: string | null;
+  versions: QuoteVersion[];
 }) {
   const accent = brandColor || "#111111";
   const router = useRouter();
@@ -197,7 +200,11 @@ export function QuoteView({
     setError(null);
   }
 
-  const isLocked = quote.status === "accepted" || quote.status === "rejected";
+  // Accepted/rejected quotes are not "locked" — editing creates a new revision
+  // But we display a warning if they try to edit.
+  const needsRevisionWarning =
+    quote.status === "accepted" || quote.status === "rejected";
+  const isLocked = false;
 
   return (
     <div className="p-8 max-w-3xl mx-auto space-y-8">
@@ -250,7 +257,8 @@ export function QuoteView({
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Quote {quote.quote_number} · {new Date(quote.created_at).toLocaleDateString("nl-NL")}
+          Quote {quote.quote_number} · v{quote.current_version} ·{" "}
+          {new Date(quote.created_at).toLocaleDateString("nl-NL")}
         </p>
         <div className="flex gap-2">
           {!editing ? (
@@ -301,6 +309,26 @@ export function QuoteView({
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {/* Revision warning when editing an accepted/rejected quote */}
+      {editing && needsRevisionWarning && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+          <p className="text-sm font-semibold text-amber-900">
+            Creating new revision
+          </p>
+          <p className="text-xs text-amber-800 mt-1">
+            Saving changes will create version {quote.current_version + 1} and reset the
+            status to draft. The current snapshot will be kept in history.
+          </p>
+        </div>
+      )}
+
+      {/* Editing banner — just says what version you're editing */}
+      {editing && !needsRevisionWarning && (
+        <p className="text-xs text-muted-foreground">
+          Editing version {quote.current_version}
+        </p>
+      )}
 
       {/* Send to Client inline form */}
       {sendOpen && !editing && (
@@ -515,6 +543,56 @@ export function QuoteView({
           </Button>
         )}
       </section>
+
+      {/* Version history */}
+      {versions.length > 1 && !editing && (
+        <section className="pt-6 border-t">
+          <h2 className="text-lg font-semibold mb-3">Version History</h2>
+          <div className="space-y-2">
+            {versions.map((v) => {
+              const isCurrent = v.version_number === quote.current_version;
+              return (
+                <div
+                  key={v.id}
+                  className={`flex items-center justify-between p-3 border rounded-lg ${
+                    isCurrent ? "bg-muted/30" : ""
+                  }`}
+                >
+                  <div>
+                    <p className="font-medium text-sm">
+                      Version {v.version_number}
+                      {isCurrent && (
+                        <span
+                          className="ml-2 text-xs px-2 py-0.5 rounded"
+                          style={{ backgroundColor: accent, color: "white" }}
+                        >
+                          Current
+                        </span>
+                      )}
+                      {v.version_number === 1 && !isCurrent && (
+                        <span className="ml-2 text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                          Original
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(v.created_at).toLocaleString("nl-NL")}
+                    </p>
+                  </div>
+                  {!isCurrent && (
+                    <Link
+                      href={`/quotes/${quote.id}?v=${v.version_number}`}
+                      className="text-sm underline text-muted-foreground hover:text-foreground"
+                    >
+                      View
+                    </Link>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

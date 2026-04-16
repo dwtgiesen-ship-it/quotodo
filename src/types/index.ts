@@ -30,6 +30,7 @@ export interface Quote {
   company_id: string;
   public_id: string;
   quote_number: string;
+  current_version: number;
   client_name: string;
   client_email: string | null;
   title: string;
@@ -72,6 +73,41 @@ export interface QuoteWithLineItems extends Quote {
   line_items: QuoteLineItem[];
 }
 
+// --- Quote versions ---
+
+/** Flat snapshot of a quote at a specific version. Stored as jsonb. */
+export interface QuoteVersionSnapshot {
+  title: string;
+  summary: string | null;
+  client_name: string;
+  client_email: string | null;
+  scope_included: string[];
+  scope_excluded: string[];
+  timeline: string | null;
+  subtotal: number;
+  vat_amount: number;
+  total: number;
+  currency: string;
+  payment_terms: number;
+  notes: string | null;
+  line_items: Array<{
+    description: string;
+    quantity: number;
+    unit: string;
+    unit_price: number;
+    vat_rate: number;
+    line_total: number;
+  }>;
+}
+
+export interface QuoteVersion {
+  id: string;
+  quote_id: string;
+  version_number: number;
+  data: QuoteVersionSnapshot;
+  created_at: string;
+}
+
 // --- Invoices ---
 
 export type InvoiceStatus = "draft" | "sent" | "paid";
@@ -104,6 +140,8 @@ export interface Invoice {
   issued_at: string | null;
   due_date: string | null;
   paid_at: string | null;
+  payment_reference: string | null;
+  payment_method: "bank_transfer" | "cash" | "other" | null;
   created_at: string;
   updated_at: string;
 }

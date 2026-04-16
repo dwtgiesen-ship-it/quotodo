@@ -81,6 +81,18 @@ export default async function PublicQuotePage({
               <span className="text-muted-foreground">Date </span>
               <span className="font-medium">{formatDate(q.created_at)}</span>
             </p>
+            <p className="text-sm">
+              <span className="text-muted-foreground">Version </span>
+              <span className="font-medium">v{q.current_version}</span>
+              {q.current_version > 1 && (
+                <span
+                  className="ml-2 text-xs px-2 py-0.5 rounded"
+                  style={{ backgroundColor: accent, color: "white" }}
+                >
+                  Updated
+                </span>
+              )}
+            </p>
           </div>
         </div>
 

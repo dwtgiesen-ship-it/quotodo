@@ -229,8 +229,15 @@ export async function markInvoiceAsSent(
 
 // -------- Mark as paid --------
 
+export interface MarkPaidPayload {
+  paymentMethod?: "bank_transfer" | "cash" | "other";
+  paymentReference?: string;
+  notes?: string;
+}
+
 export async function markInvoiceAsPaid(
-  invoiceId: string
+  invoiceId: string,
+  payload: MarkPaidPayload = {}
 ): Promise<ActionResult<void>> {
   const supabase = await createClient();
   const {
@@ -243,7 +250,7 @@ export async function markInvoiceAsPaid(
 
   const { data: invoice } = await supabase
     .from("invoices")
-    .select("status")
+    .select("status, notes")
     .eq("id", invoiceId)
     .single();
 
@@ -255,9 +262,22 @@ export async function markInvoiceAsPaid(
     return { success: false, error: "Invoice is already paid" };
   }
 
+  const updates: Record<string, unknown> = {
+    status: "paid",
+    paid_at: new Date().toISOString(),
+  };
+
+  if (payload.paymentMethod) updates.payment_method = payload.paymentMethod;
+  if (payload.paymentReference) updates.payment_reference = payload.paymentReference;
+  if (payload.notes) {
+    // Append notes rather than overwriting quote-derived notes
+    const existing = invoice.notes ? invoice.notes + "\n\n" : "";
+    updates.notes = existing + payload.notes;
+  }
+
   const { error } = await supabase
     .from("invoices")
-    .update({ status: "paid", paid_at: new Date().toISOString() })
+    .update(updates)
     .eq("id", invoiceId);
 
   if (error) {
@@ -269,4 +289,43 @@ export async function markInvoiceAsPaid(
   revalidatePath("/dashboard");
 
   return { success: true };
+}
+
+// -------- Get reminder texts --------
+
+export async function getReminderTextsForInvoice(
+  invoiceId: string
+): Promise<ActionResult<{ emailSubject: string; emailBody: string; emailFull: string; whatsapp: string }>> {
+  const { generateReminderTexts } = await import("@/lib/reminder");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const { data: invoice, error: invErr } = await supabase
+    .from("invoices")
+    .select("*")
+    .eq("id", invoiceId)
+    .single();
+
+  if (invErr || !invoice) {
+    return { success: false, error: "Invoice not found" };
+  }
+
+  const { data: company, error: companyErr } = await supabase
+    .from("companies")
+    .select("*")
+    .eq("id", invoice.company_id)
+    .single();
+
+  if (companyErr || !company) {
+    return { success: false, error: "Company not found" };
+  }
+
+  return { success: true, data: generateReminderTexts(invoice, company) };
 }
