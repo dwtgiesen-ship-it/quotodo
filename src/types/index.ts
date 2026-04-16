@@ -1,6 +1,6 @@
 // Database row types — aligned with Supabase schema
 
-export type QuoteStatus = "draft" | "final";
+export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected";
 
 export interface Company {
   id: string;
@@ -28,6 +28,7 @@ export interface Company {
 export interface Quote {
   id: string;
   company_id: string;
+  public_id: string;
   quote_number: string;
   client_name: string;
   client_email: string | null;
@@ -47,6 +48,8 @@ export interface Quote {
   original_input: string;
   ai_raw_response: Record<string, unknown> | null;
   ai_edited: boolean;
+  accepted_at: string | null;
+  rejected_at: string | null;
   created_at: string;
   updated_at: string;
 }
