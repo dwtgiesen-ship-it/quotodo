@@ -282,6 +282,53 @@ export async function generateQuoteFromInput(
   return { success: true, data: { quote: data, rawString: raw } };
 }
 
+// -------- Manually mark as sent --------
+
+export async function markQuoteAsSent(
+  quoteId: string
+): Promise<ActionResult<void>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  // Fetch to verify ownership (RLS) and current status
+  const { data: quote, error: fetchErr } = await supabase
+    .from("quotes")
+    .select("id, status")
+    .eq("id", quoteId)
+    .single();
+
+  if (fetchErr || !quote) {
+    return { success: false, error: "Quote not found" };
+  }
+
+  if (quote.status !== "draft") {
+    return {
+      success: false,
+      error: `Quote is already ${quote.status}`,
+    };
+  }
+
+  const { error: updateErr } = await supabase
+    .from("quotes")
+    .update({ status: "sent" })
+    .eq("id", quoteId);
+
+  if (updateErr) {
+    return { success: false, error: updateErr.message };
+  }
+
+  revalidatePath(`/quotes/${quoteId}`);
+  revalidatePath("/dashboard");
+
+  return { success: true };
+}
+
 // -------- Send quote by email --------
 
 export async function sendQuoteByEmail(
@@ -351,8 +398,8 @@ export async function sendQuoteByEmail(
     await supabase.from("quotes").update(updates).eq("id", quoteId);
   }
 
-  revalidatePath(`/app/quotes/${quoteId}`);
-  revalidatePath("/app/dashboard");
+  revalidatePath(`/quotes/${quoteId}`);
+  revalidatePath("/dashboard");
 
   return { success: true };
 }

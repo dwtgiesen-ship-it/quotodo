@@ -56,7 +56,7 @@ export function SettingsForm({ company }: { company: Company }) {
     <div className="p-8 max-w-2xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Settings</h1>
-        <Button variant="outline" onClick={() => router.push("/app/dashboard")}>
+        <Button variant="outline" onClick={() => router.push("/dashboard")}>
           Back to Dashboard
         </Button>
       </div>

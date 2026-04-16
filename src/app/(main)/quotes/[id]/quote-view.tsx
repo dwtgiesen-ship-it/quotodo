@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCents, calculateQuoteTotals, toCents } from "@/lib/utils";
-import { updateQuote, sendQuoteByEmail } from "@/lib/actions/quotes";
+import { updateQuote, sendQuoteByEmail, markQuoteAsSent } from "@/lib/actions/quotes";
+import { createInvoiceFromQuote } from "@/lib/actions/invoices";
 import type { Quote, QuoteLineItem } from "@/types";
 
 interface EditableLineItem {
@@ -40,11 +41,44 @@ export function QuoteView({
   const [sendResult, setSendResult] = useState<{ kind: "success" | "error"; msg: string } | null>(
     null
   );
+  const [markingSent, setMarkingSent] = useState(false);
+  const [converting, setConverting] = useState(false);
 
   const publicUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/quote/${quote.public_id}`
       : `/quote/${quote.public_id}`;
+
+  async function handleConvertToInvoice() {
+    setConverting(true);
+    setError(null);
+
+    const res = await createInvoiceFromQuote(quote.id);
+
+    if (!res.success || !res.data) {
+      setError(res.error || "Failed to create invoice");
+      setConverting(false);
+      return;
+    }
+
+    router.push(`/invoices/${res.data.id}`);
+  }
+
+  async function handleMarkAsSent() {
+    setMarkingSent(true);
+    setError(null);
+
+    const res = await markQuoteAsSent(quote.id);
+
+    if (!res.success) {
+      setError(res.error || "Failed to mark as sent");
+      setMarkingSent(false);
+      return;
+    }
+
+    router.refresh();
+    setMarkingSent(false);
+  }
 
   async function handleSend() {
     setSending(true);
@@ -169,19 +203,24 @@ export function QuoteView({
     <div className="p-8 max-w-3xl mx-auto space-y-8">
       {/* Status banner for accepted/rejected */}
       {quote.status === "accepted" && (
-        <div className="rounded-lg bg-green-50 border border-green-200 p-4">
-          <p className="text-sm font-semibold text-green-800">
-            ✓ Accepted by client
-            {quote.accepted_at &&
-              ` on ${new Date(quote.accepted_at).toLocaleDateString("nl-NL", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}`}
-          </p>
-          <p className="text-xs text-green-700 mt-1">
-            Editing is locked to preserve what the client agreed to.
-          </p>
+        <div className="rounded-lg bg-green-50 border border-green-200 p-4 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-green-800">
+              ✓ Accepted by client
+              {quote.accepted_at &&
+                ` on ${new Date(quote.accepted_at).toLocaleDateString("nl-NL", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}`}
+            </p>
+            <p className="text-xs text-green-700 mt-1">
+              Editing is locked. Ready to bill?
+            </p>
+          </div>
+          <Button onClick={handleConvertToInvoice} disabled={converting}>
+            {converting ? "Creating..." : "Convert to Invoice"}
+          </Button>
         </div>
       )}
       {quote.status === "rejected" && (
@@ -197,6 +236,16 @@ export function QuoteView({
           </p>
         </div>
       )}
+      {quote.status === "sent" && (
+        <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+          <p className="text-sm font-semibold text-blue-800">
+            Sent — waiting for client response
+          </p>
+          <p className="text-xs text-blue-700 mt-1">
+            Share the public link with your client. They can accept or decline directly.
+          </p>
+        </div>
+      )}
 
       {/* Top bar */}
       <div className="flex items-center justify-between">
@@ -206,7 +255,7 @@ export function QuoteView({
         <div className="flex gap-2">
           {!editing ? (
             <>
-              <Button variant="outline" onClick={() => router.push("/app/dashboard")}>
+              <Button variant="outline" onClick={() => router.push("/dashboard")}>
                 Back
               </Button>
               <Button variant="outline" onClick={handleCopyLink}>
@@ -218,6 +267,15 @@ export function QuoteView({
               >
                 PDF
               </Button>
+              {quote.status === "draft" && (
+                <Button
+                  variant="outline"
+                  onClick={handleMarkAsSent}
+                  disabled={markingSent}
+                >
+                  {markingSent ? "Marking..." : "Mark as Sent"}
+                </Button>
+              )}
               {!isLocked && (
                 <Button onClick={() => setSendOpen((v) => !v)}>
                   Send to Client

@@ -25,7 +25,7 @@ export default function NewQuotePage() {
         return;
       }
 
-      router.push(`/app/quotes/${res.data.id}`);
+      router.push(`/quotes/${res.data.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setLoading(false);
@@ -51,7 +51,7 @@ export default function NewQuotePage() {
           <Button onClick={handleGenerate} disabled={loading || input.length < 10}>
             {loading ? "Generating..." : "Generate Quote"}
           </Button>
-          <Button variant="outline" onClick={() => router.push("/app/dashboard")}>
+          <Button variant="outline" onClick={() => router.push("/dashboard")}>
             Cancel
           </Button>
         </div>

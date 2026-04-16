@@ -72,6 +72,42 @@ export interface QuoteWithLineItems extends Quote {
   line_items: QuoteLineItem[];
 }
 
+// --- Invoices ---
+
+export type InvoiceStatus = "draft" | "sent" | "paid";
+
+export interface InvoiceLineItem {
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_price: number; // cents
+  vat_rate: number;
+  line_total: number; // cents
+}
+
+export interface Invoice {
+  id: string;
+  company_id: string;
+  quote_id: string | null;
+  invoice_number: string;
+  client_name: string;
+  client_email: string | null;
+  title: string;
+  notes: string | null;
+  line_items: InvoiceLineItem[];
+  subtotal: number;
+  vat_amount: number;
+  total: number;
+  currency: string;
+  payment_terms: number;
+  status: InvoiceStatus;
+  issued_at: string | null;
+  due_date: string | null;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Server action response wrapper
 export interface ActionResult<T = void> {
   success: boolean;
