@@ -1,0 +1,585 @@
+// SalonFlow — representative Prisma schema (PostgreSQL).
+// Tenant isolation: every tenant table carries salonId and is protected by a Postgres RLS
+// policy (see 02-architecture.md). Prisma manages structure; RLS policies are applied via a
+// raw SQL migration (example at the bottom of this file).
+//
+// This is the core model that the MVP + early fast-follow build against. Loyalty, campaigns,
+// and marketplace-index tables are included in summarized form and expanded as those modules
+// are implemented.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum Vertical {
+  hair
+  barber
+  nails
+  lash
+  brow
+  beauty
+  spa
+  pet
+}
+
+enum StaffRole {
+  owner
+  manager
+  staff
+  receptionist
+}
+
+enum AppointmentStatus {
+  booked
+  confirmed
+  completed
+  cancelled
+  no_show
+}
+
+enum AppointmentSource {
+  dashboard
+  online
+  marketplace
+  ai
+}
+
+enum PaymentKind {
+  deposit
+  full
+  refund
+  gift_card
+  membership
+}
+
+enum PaymentStatus {
+  requires_action
+  processing
+  succeeded
+  refunded
+  failed
+}
+
+enum CalendarProvider {
+  google
+  microsoft
+  apple
+}
+
+enum ProfileType {
+  pet
+  nail
+  generic
+}
+
+enum Channel {
+  sms
+  email
+  whatsapp
+}
+
+enum CampaignType {
+  confirmation
+  reminder
+  review
+  rebooking
+  birthday
+  win_back
+}
+
+enum MessageStatus {
+  queued
+  sent
+  delivered
+  read
+  failed
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tenant root
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Salon {
+  id            String   @id @default(uuid()) // UUID v7 generated app-side
+  clerkOrgId    String   @unique
+  name          String
+  slug          String   @unique
+  vertical      Vertical
+  currency      String   @default("EUR")
+  timezone      String   @default("Europe/Amsterdam")
+  onboardingStep Int     @default(0)
+  // marketplace profile (exposed in Phase 4; modeled now)
+  about         String?
+  ratingAvg     Float    @default(0)
+  ratingCount   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  locations      Location[]
+  staff          Staff[]
+  categories     ServiceCategory[]
+  services       Service[]
+  customers      Customer[]
+  appointments   Appointment[]
+  membershipPlans MembershipPlan[]
+  campaigns      Campaign[]
+  waitlist       WaitlistEntry[]
+
+  @@index([vertical])
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  salonId   String
+  salon     Salon    @relation(fields: [salonId], references: [id])
+  name      String
+  address   String?
+  lat       Float?
+  lng       Float?
+  timezone  String
+  createdAt DateTime @default(now())
+
+  staff        Staff[]
+  appointments Appointment[]
+
+  @@index([salonId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Staff & availability
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Staff {
+  id            String    @id @default(uuid())
+  salonId       String
+  salon         Salon     @relation(fields: [salonId], references: [id])
+  locationId    String?
+  location      Location? @relation(fields: [locationId], references: [id])
+  clerkUserId   String?   // null for resource-only members (rooms, non-login stylists)
+  publicId      String    @unique
+  displayName   String
+  role          StaffRole @default(staff)
+  bio           String?
+  color         String    @default("#8B5FB8")
+  commissionPct Float?
+  bookableOnline Boolean  @default(true)
+  createdAt     DateTime  @default(now())
+  deletedAt     DateTime?
+
+  services        StaffService[]
+  availability    AvailabilityRule[]
+  timeOff         TimeOff[]
+  appointments    Appointment[]
+  calendarConns   CalendarConnection[]
+
+  @@index([salonId])
+  @@index([salonId, clerkUserId])
+}
+
+model AvailabilityRule {
+  id        String   @id @default(uuid())
+  salonId   String
+  staffId   String
+  staff     Staff    @relation(fields: [staffId], references: [id])
+  weekday   Int      // 0=Sunday..6=Saturday
+  startMin  Int      // minutes from midnight, local tz
+  endMin    Int
+  @@index([salonId, staffId])
+}
+
+model TimeOff {
+  id      String   @id @default(uuid())
+  salonId String
+  staffId String
+  staff   Staff    @relation(fields: [staffId], references: [id])
+  start   DateTime
+  end     DateTime
+  reason  String?
+  @@index([salonId, staffId, start])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Catalog
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ServiceCategory {
+  id       String    @id @default(uuid())
+  salonId  String
+  salon    Salon     @relation(fields: [salonId], references: [id])
+  name     String
+  sortOrder Int      @default(0)
+  services Service[]
+  @@index([salonId])
+}
+
+model Service {
+  id           String   @id @default(uuid())
+  salonId      String
+  salon        Salon    @relation(fields: [salonId], references: [id])
+  categoryId   String?
+  category     ServiceCategory? @relation(fields: [categoryId], references: [id])
+  publicId     String   @unique
+  name         String
+  description  String?
+  durationMin  Int
+  priceMinor   Int      // minor units
+  bufferBefore Int      @default(0)
+  bufferAfter  Int      @default(0)
+  color        String   @default("#4F9A57")
+  bookableOnline Boolean @default(true)
+  depositMinor Int?     // null = no deposit required
+  deletedAt    DateTime?
+
+  staff        StaffService[]
+  addons       ServiceAddon[]
+  apptServices AppointmentService[]
+  waitlist     WaitlistEntry[]
+
+  @@index([salonId])
+  @@index([salonId, categoryId])
+}
+
+model ServiceAddon {
+  id         String  @id @default(uuid())
+  salonId    String
+  serviceId  String
+  service    Service @relation(fields: [serviceId], references: [id])
+  name       String
+  durationMin Int    @default(0)
+  priceMinor Int
+  @@index([salonId, serviceId])
+}
+
+model StaffService {
+  id          String  @id @default(uuid())
+  salonId     String
+  staffId     String
+  staff       Staff   @relation(fields: [staffId], references: [id])
+  serviceId   String
+  service     Service @relation(fields: [serviceId], references: [id])
+  priceMinor  Int?    // per-staff override
+  durationMin Int?    // per-staff override
+  @@unique([staffId, serviceId])
+  @@index([salonId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Customers & CRM
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Customer {
+  id          String   @id @default(uuid())
+  salonId     String
+  salon       Salon    @relation(fields: [salonId], references: [id])
+  // a Customer is salon-scoped; a marketplace consumer maps to many salon Customers
+  consumerId  String?  // global consumer identity (Phase 4), nullable for now
+  firstName   String
+  lastName    String?
+  email       String?
+  phone       String?
+  notes       String?
+  preferences Json?
+  totalSpendMinor Int  @default(0)
+  createdAt   DateTime @default(now())
+  deletedAt   DateTime?
+
+  appointments Appointment[]
+  profiles     CustomerProfile[]
+  photos       CustomerPhoto[]
+  payments     Payment[]
+  memberships  MembershipUser[]
+  loyalty      LoyaltyAccount?
+  reviews      Review[]
+  messages     Message[]
+  waitlist     WaitlistEntry[]
+
+  @@index([salonId])
+  @@index([salonId, email])
+  @@index([salonId, phone])
+}
+
+model CustomerProfile {
+  id         String      @id @default(uuid())
+  salonId    String
+  customerId String
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  type       ProfileType
+  data       Json        // validated by a per-type Zod schema in the app layer
+  @@unique([customerId, type])
+  @@index([salonId])
+}
+
+model CustomerPhoto {
+  id            String   @id @default(uuid())
+  salonId       String
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  appointmentId String?
+  s3Key         String
+  kind          String   // before | after | reference
+  createdAt     DateTime @default(now())
+  @@index([salonId, customerId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scheduling
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Appointment {
+  id             String            @id @default(uuid())
+  salonId        String
+  salon          Salon             @relation(fields: [salonId], references: [id])
+  locationId     String?
+  location       Location?         @relation(fields: [locationId], references: [id])
+  customerId     String
+  customer       Customer          @relation(fields: [customerId], references: [id])
+  staffId        String
+  staff          Staff             @relation(fields: [staffId], references: [id])
+  status         AppointmentStatus @default(booked)
+  source         AppointmentSource @default(dashboard)
+  start          DateTime
+  end            DateTime
+  bookedTimezone String
+  notes          String?
+  idempotencyKey String?           @unique
+  // recurrence (group/recurring bookings)
+  recurrenceId   String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  cancelledAt    DateTime?
+
+  services AppointmentService[]
+  payment  Payment?
+  external ExternalCalendarEvent?
+
+  @@index([salonId, start])
+  @@index([salonId, staffId, start])
+  @@index([salonId, customerId])
+}
+
+model AppointmentService {
+  id            String      @id @default(uuid())
+  salonId       String
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  serviceId     String
+  service       Service     @relation(fields: [serviceId], references: [id])
+  staffId       String?     // per-line staff for group/parallel services
+  priceMinor    Int
+  durationMin   Int
+  addons        Json?       // [{ addonId, name, priceMinor, durationMin }]
+  @@index([salonId, appointmentId])
+}
+
+model WaitlistEntry {
+  id          String   @id @default(uuid())
+  salonId     String
+  salon       Salon    @relation(fields: [salonId], references: [id])
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  serviceId   String
+  service     Service  @relation(fields: [serviceId], references: [id])
+  windowStart DateTime
+  windowEnd   DateTime
+  createdAt   DateTime @default(now())
+  filledAt    DateTime?
+  @@index([salonId, serviceId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Calendar sync
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CalendarConnection {
+  id            String           @id @default(uuid())
+  salonId       String
+  staffId       String
+  staff         Staff            @relation(fields: [staffId], references: [id])
+  provider      CalendarProvider
+  externalAccount String
+  accessToken   String           // encrypted at rest (KMS envelope)
+  refreshToken  String           // encrypted at rest (KMS envelope)
+  expiresAt     DateTime?
+  syncToken     String?          // Google syncToken / Graph deltaLink / CalDAV ctag
+  channelId     String?          // push subscription id
+  createdAt     DateTime         @default(now())
+  @@unique([staffId, provider, externalAccount])
+  @@index([salonId])
+}
+
+model ExternalCalendarEvent {
+  id            String      @id @default(uuid())
+  salonId       String
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  provider      CalendarProvider
+  externalEventId String
+  etag          String?     // echo-loop prevention
+  updatedAt     DateTime    @updatedAt
+  @@index([salonId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Payments, memberships, loyalty
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Payment {
+  id                  String        @id @default(uuid())
+  salonId             String
+  customerId          String?
+  customer            Customer?     @relation(fields: [customerId], references: [id])
+  appointmentId       String?       @unique
+  appointment         Appointment?  @relation(fields: [appointmentId], references: [id])
+  membershipUserId    String?
+  kind                PaymentKind
+  amountMinor         Int
+  currency            String
+  status              PaymentStatus @default(processing)
+  stripePaymentIntent String?
+  stripeChargeId      String?
+  createdAt           DateTime      @default(now())
+  @@index([salonId])
+  @@index([salonId, createdAt])
+}
+
+model MembershipPlan {
+  id             String   @id @default(uuid())
+  salonId        String
+  salon          Salon    @relation(fields: [salonId], references: [id])
+  name           String   // Bronze / Silver / Gold
+  priceMinor     Int
+  interval       String   // month | year
+  includedServices Json?  // [{ serviceId, quantity }]
+  discountPct    Float    @default(0)
+  loyaltyMultiplier Float @default(1)
+  stripePriceId  String?
+  active         Boolean  @default(true)
+  subscribers    MembershipUser[]
+  @@index([salonId])
+}
+
+model MembershipUser {
+  id                   String   @id @default(uuid())
+  salonId              String
+  planId               String
+  plan                 MembershipPlan @relation(fields: [planId], references: [id])
+  customerId           String
+  customer             Customer @relation(fields: [customerId], references: [id])
+  stripeSubscriptionId String?
+  status               String   // active | past_due | cancelled
+  renewsAt             DateTime?
+  usage                Json?    // included-service usage counters this period
+  createdAt            DateTime @default(now())
+  @@index([salonId, customerId])
+}
+
+model LoyaltyAccount {
+  id          String   @id @default(uuid())
+  salonId     String
+  customerId  String   @unique
+  customer    Customer @relation(fields: [customerId], references: [id])
+  points      Int      @default(0)
+  tier        String   @default("standard") // standard | silver | gold | vip
+  transactions LoyaltyTransaction[]
+  @@index([salonId])
+}
+
+model LoyaltyTransaction {
+  id        String   @id @default(uuid())
+  salonId   String
+  accountId String
+  account   LoyaltyAccount @relation(fields: [accountId], references: [id])
+  delta     Int      // +earn / -redeem
+  reason    String   // earn | redeem | referral | birthday | adjustment
+  createdAt DateTime @default(now())
+  @@index([salonId, accountId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Comms, reviews, audit, outbox
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Campaign {
+  id        String       @id @default(uuid())
+  salonId   String
+  salon     Salon        @relation(fields: [salonId], references: [id])
+  type      CampaignType
+  channel   Channel
+  template  String       // template id / body with merge tags
+  triggerOffsetMin Int?  // e.g. -1440 = 24h before appointment
+  active    Boolean      @default(true)
+  messages  Message[]
+  @@index([salonId])
+}
+
+model Message {
+  id          String        @id @default(uuid())
+  salonId     String
+  campaignId  String?
+  campaign    Campaign?     @relation(fields: [campaignId], references: [id])
+  customerId  String
+  customer    Customer      @relation(fields: [customerId], references: [id])
+  channel     Channel
+  status      MessageStatus @default(queued)
+  providerId  String?       // Twilio/Resend message id
+  body        String
+  sentAt      DateTime?
+  @@index([salonId, customerId])
+}
+
+model Review {
+  id            String   @id @default(uuid())
+  salonId       String
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  appointmentId String?
+  rating        Int
+  text          String?
+  createdAt     DateTime @default(now())
+  @@index([salonId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  salonId   String
+  actorId   String   // clerk user id
+  action    String
+  target    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  @@index([salonId, createdAt])
+}
+
+model OutboxEvent {
+  id          String   @id @default(uuid())
+  salonId     String
+  type        String   // appointment.booked, payment.captured, ...
+  payload     Json
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  publishedAt DateTime?
+  @@index([published, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RLS migration (apply as raw SQL after `prisma migrate`):
+//
+//   ALTER TABLE "Appointment" ENABLE ROW LEVEL SECURITY;
+//   CREATE POLICY tenant_isolation ON "Appointment"
+//     USING ("salonId" = current_setting('app.current_salon_id')::uuid);
+//   -- repeat for every table carrying salonId.
+//
+// The API opens each request transaction with:
+//   SET LOCAL app.current_salon_id = '<salonId from verified JWT>';
+// PgBouncer transaction-mode safe (SET LOCAL is scoped to the transaction).
+// ─────────────────────────────────────────────────────────────────────────────
