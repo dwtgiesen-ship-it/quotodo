@@ -55,7 +55,7 @@ export function SiteFooter() {
           <div>
             <Link href="/" className="flex items-center gap-2">
               <span className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-[#f0a8c0] to-[#9a7bd6] text-sm font-bold text-white">S</span>
-              <span className="text-[17px] font-semibold text-white">SalonFlow</span>
+              <span className="font-heading text-[18px] font-bold text-white">SalonFlow</span>
             </Link>
             <p className="mt-3 max-w-[220px] text-[13px] leading-relaxed text-white/55">The easiest salon software in the world. Live in 10 minutes.</p>
           </div>

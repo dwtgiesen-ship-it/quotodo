@@ -158,7 +158,7 @@ export default function Home() {
       {/* Why different */}
       <section id="why" className="mx-auto max-w-6xl px-5 py-16 md:py-24">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-[32px] font-semibold tracking-tight [text-wrap:balance] md:text-[40px]">Salon software, finally done right</h2>
+          <h2 className="text-[32px] font-heading font-semibold tracking-tight [text-wrap:balance] md:text-[40px]">Salon software, finally done right</h2>
           <p className="mt-3 text-[16px] text-[#5b6472] [text-wrap:pretty]">Most tools are powerful but painful. SalonFlow is powerful and effortless — here&apos;s what makes it different.</p>
         </div>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -175,7 +175,7 @@ export default function Home() {
       {/* Dark overview band */}
       <section className="bg-[#1f2a4d] text-white">
         <div className="mx-auto max-w-6xl px-5 py-16 text-center md:py-20">
-          <h2 className="mx-auto max-w-2xl text-[30px] font-semibold tracking-tight [text-wrap:balance] md:text-[40px]">Everything you need to run your salon</h2>
+          <h2 className="mx-auto max-w-2xl text-[30px] font-heading font-semibold tracking-tight [text-wrap:balance] md:text-[40px]">Everything you need to run your salon</h2>
           <p className="mx-auto mt-3 max-w-xl text-[16px] text-white/65 [text-wrap:pretty]">One platform that has quietly replaced the calendar, the POS, the spreadsheet and the four marketing apps.</p>
           <div className="mt-9 overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
             <img src="/shots/dashboard.png" alt="SalonFlow dashboard" className="block w-full" loading="lazy" />
@@ -194,7 +194,7 @@ export default function Home() {
           <section key={f.title} id={f.id} className="grid items-center gap-10 py-16 md:grid-cols-2 md:py-20">
             <div className={f.reverse ? "md:order-2" : ""}>
               <div className="text-[12px] font-semibold uppercase tracking-wider text-[#b07fd0]">{f.tag}</div>
-              <h3 className="mt-2 text-[28px] font-semibold tracking-tight [text-wrap:balance] md:text-[34px]">{f.title}</h3>
+              <h3 className="mt-2 text-[28px] font-heading font-semibold tracking-tight [text-wrap:balance] md:text-[34px]">{f.title}</h3>
               <p className="mt-3 text-[16px] leading-relaxed text-[#5b6472] [text-wrap:pretty]">{f.body}</p>
               <ul className="mt-5 grid gap-2.5 sm:grid-cols-2">
                 {f.bullets.map((b) => (
@@ -213,7 +213,7 @@ export default function Home() {
       <section id="who" className="bg-[#fafbfc]">
         <div className="mx-auto max-w-6xl px-5 py-16 md:py-20">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-[30px] font-semibold tracking-tight [text-wrap:balance] md:text-[38px]">One platform, every kind of salon</h2>
+            <h2 className="text-[30px] font-heading font-semibold tracking-tight [text-wrap:balance] md:text-[38px]">One platform, every kind of salon</h2>
             <p className="mt-3 text-[16px] text-[#5b6472]">Smart defaults per vertical mean you&apos;re live in minutes, whatever you do.</p>
           </div>
           <div className="mt-9 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -230,7 +230,7 @@ export default function Home() {
       {/* Compare */}
       <section className="mx-auto max-w-4xl px-5 py-16 md:py-20">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-[30px] font-semibold tracking-tight [text-wrap:balance] md:text-[38px]">Why salons switch to SalonFlow</h2>
+          <h2 className="text-[30px] font-heading font-semibold tracking-tight [text-wrap:balance] md:text-[38px]">Why salons switch to SalonFlow</h2>
           <p className="mt-3 text-[16px] text-[#5b6472]">The all-in-one experience legacy salon software can&apos;t match.</p>
         </div>
         <div className="mt-9 overflow-hidden rounded-2xl border border-[#eef0f2]">
@@ -254,7 +254,7 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-5 py-16 md:py-20">
           <div className="mx-auto max-w-2xl text-center">
             <div className="flex items-center justify-center gap-1">{[...Array(5)].map((_, i) => <Star key={i} className="size-5 fill-[#e6b54a] text-[#e6b54a]" />)}</div>
-            <h2 className="mt-3 text-[30px] font-semibold tracking-tight [text-wrap:balance] md:text-[38px]">Loved by busy salon teams</h2>
+            <h2 className="mt-3 text-[30px] font-heading font-semibold tracking-tight [text-wrap:balance] md:text-[38px]">Loved by busy salon teams</h2>
             <p className="mt-2 text-[13px] text-[#9097a3]">Illustrative testimonials from the demo.</p>
           </div>
           <div className="mt-9 grid gap-4 md:grid-cols-3">
@@ -275,7 +275,7 @@ export default function Home() {
       {/* Pricing */}
       <section id="pricing" className="mx-auto max-w-6xl px-5 py-16 md:py-20">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-[30px] font-semibold tracking-tight [text-wrap:balance] md:text-[38px]">Simple pricing, per location</h2>
+          <h2 className="text-[30px] font-heading font-semibold tracking-tight [text-wrap:balance] md:text-[38px]">Simple pricing, per location</h2>
           <p className="mt-3 text-[16px] text-[#5b6472]">Start free. Upgrade when you grow.</p>
         </div>
         <div className="mt-9 grid gap-4 md:grid-cols-3">
@@ -297,7 +297,7 @@ export default function Home() {
           <div aria-hidden className="pointer-events-none absolute -right-20 -top-24 size-80 rounded-full bg-[radial-gradient(circle,#9a7bd6_0%,transparent_70%)] opacity-50" />
           <div aria-hidden className="pointer-events-none absolute -bottom-24 -left-16 size-80 rounded-full bg-[radial-gradient(circle,#f0a8c0_0%,transparent_70%)] opacity-40" />
           <div className="relative">
-            <h2 className="mx-auto max-w-2xl text-[32px] font-semibold tracking-tight [text-wrap:balance] md:text-[42px]">Switch to SalonFlow with zero downtime</h2>
+            <h2 className="mx-auto max-w-2xl text-[32px] font-heading font-semibold tracking-tight [text-wrap:balance] md:text-[42px]">Switch to SalonFlow with zero downtime</h2>
             <p className="mx-auto mt-3 max-w-md text-[16px] text-white/70">Set up in 10 minutes, keep your calendar in sync, and take your first booking today.</p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               <Link href="/salonflow/onboarding" className="flex items-center gap-1.5 rounded-xl bg-white px-6 py-3.5 text-[15px] font-semibold text-[#1f2a4d] hover:bg-white/90">Start free <ArrowRight className="size-4" /></Link>

@@ -27,7 +27,7 @@ export function SiteNav() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
         <Link href="/" className="flex items-center gap-2">
           <span className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-[#f0a8c0] to-[#9a7bd6] text-sm font-bold text-white">S</span>
-          <span className="text-[17px] font-semibold tracking-tight text-[#1f2a4d]">SalonFlow</span>
+          <span className="font-heading text-[18px] font-bold tracking-tight text-[#1f2a4d]">SalonFlow</span>
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex">
