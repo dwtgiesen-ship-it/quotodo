@@ -23,11 +23,15 @@ model Salon {
   timezone           String  @default("Europe/Amsterdam")
   onboardingComplete Boolean @default(false)
   calendarConnected  Boolean @default(false)
+  weeklyHours        String  @default("{}") // JSON { mon:[startMin,endMin]|null, ... }
 
-  services     Service[]
-  staff        Staff[]
-  clients      Client[]
-  appointments Appointment[]
+  services        Service[]
+  staff           Staff[]
+  clients         Client[]
+  appointments    Appointment[]
+  membershipPlans MembershipPlan[]
+  campaigns       Campaign[]
+  waitlist        WaitlistEntry[]
 }
 
 model Service {
@@ -57,6 +61,8 @@ model Staff {
   role           String  @default("staff")
   bookableOnline Boolean @default(true)
   serviceIds     String  @default("[]") // JSON array of service ids
+  weeklyHours    String  @default("{}") // JSON per-staff hours (overrides salon)
+  archived       Boolean @default(false)
 
   appointments Appointment[]
 
@@ -77,8 +83,15 @@ model Client {
   loyaltyPoints   Int    @default(0)
   tier            String @default("standard")
   tags            String @default("[]") // JSON array
+  profileType     String @default("generic") // pet | nail | generic
+  profileData     String @default("{}") // JSON vertical profile
 
-  appointments Appointment[]
+  appointments    Appointment[]
+  memberships     MembershipUser[]
+  loyaltyLedger   LoyaltyTransaction[]
+  messages        Message[]
+  photos          CustomerPhoto[]
+  waitlist        WaitlistEntry[]
 
   @@index([salonId])
 }
@@ -104,5 +117,106 @@ model Appointment {
 
   @@index([salonId, day])
   @@index([salonId, staffId, day])
+  @@index([salonId, clientId])
+}
+
+model MembershipPlan {
+  id                String  @id @default(cuid())
+  salonId           String
+  salon             Salon   @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  name              String
+  priceMinor        Int
+  interval          String  @default("month") // month | year
+  includedServices  String  @default("[]")    // JSON [{serviceId, quantity}]
+  discountPct       Float   @default(0)
+  loyaltyMultiplier Float   @default(1)
+  active            Boolean @default(true)
+  sortOrder         Int     @default(0)
+
+  subscribers MembershipUser[]
+
+  @@index([salonId])
+}
+
+model MembershipUser {
+  id        String   @id @default(cuid())
+  salonId   String
+  planId    String
+  plan      MembershipPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  status    String   @default("active") // active | past_due | cancelled
+  renewsAt  String?   // ISO date
+  createdAt DateTime @default(now())
+
+  @@index([salonId, clientId])
+}
+
+model LoyaltyTransaction {
+  id        String   @id @default(cuid())
+  salonId   String
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  delta     Int      // +earn / -redeem
+  reason    String   // earn | redeem | referral | birthday | adjustment
+  note      String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([salonId, clientId])
+}
+
+model Campaign {
+  id               String  @id @default(cuid())
+  salonId          String
+  salon            Salon   @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  type             String  // confirmation | reminder | review | rebooking | birthday | win_back
+  channel          String  // sms | email | whatsapp
+  template         String
+  triggerOffsetMin Int?
+  active           Boolean @default(true)
+
+  messages Message[]
+
+  @@index([salonId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  salonId    String
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  channel    String
+  status     String   @default("sent") // queued | sent | delivered | read | failed
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([salonId, clientId])
+}
+
+model WaitlistEntry {
+  id          String   @id @default(cuid())
+  salonId     String
+  salon       Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  serviceId   String
+  windowDay   Int      // preferred day index, -1 = any
+  createdAt   DateTime @default(now())
+  filledAt    DateTime?
+
+  @@index([salonId])
+}
+
+model CustomerPhoto {
+  id         String   @id @default(cuid())
+  salonId    String
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  url        String
+  kind       String   @default("reference") // before | after | reference
+  createdAt  DateTime @default(now())
+
   @@index([salonId, clientId])
 }

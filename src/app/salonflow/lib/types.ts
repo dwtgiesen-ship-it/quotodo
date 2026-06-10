@@ -25,10 +25,13 @@ export type Staff = {
   name: string;
   initials: string;
   color: string;
-  role: "owner" | "manager" | "staff";
+  role: "owner" | "manager" | "staff" | "receptionist";
   bookableOnline: boolean;
   serviceIds: string[];
+  weeklyHours: WeeklyHours;
 };
+
+export type ProfileType = "pet" | "nail" | "generic";
 
 export type Client = {
   id: string;
@@ -42,6 +45,75 @@ export type Client = {
   loyaltyPoints: number;
   tier: "standard" | "silver" | "gold" | "vip";
   tags: string[];
+  profileType: ProfileType;
+  profileData: Record<string, unknown>;
+};
+
+export type Weekday = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+export type WeeklyHours = Partial<Record<Weekday, [number, number] | null>>; // [startMin, endMin]
+
+export type MembershipPlan = {
+  id: string;
+  name: string;
+  priceMinor: number;
+  interval: "month" | "year";
+  includedServices: { serviceId: string; quantity: number }[];
+  discountPct: number;
+  loyaltyMultiplier: number;
+  active: boolean;
+};
+
+export type MembershipUser = {
+  id: string;
+  planId: string;
+  clientId: string;
+  status: "active" | "past_due" | "cancelled";
+  renewsAt: string | null;
+};
+
+export type LoyaltyTransaction = {
+  id: string;
+  clientId: string;
+  delta: number;
+  reason: "earn" | "redeem" | "referral" | "birthday" | "adjustment";
+  note: string;
+  createdAt: string;
+};
+
+export type CampaignType = "confirmation" | "reminder" | "review" | "rebooking" | "birthday" | "win_back";
+
+export type Campaign = {
+  id: string;
+  type: CampaignType;
+  channel: "sms" | "email" | "whatsapp";
+  template: string;
+  triggerOffsetMin: number | null;
+  active: boolean;
+};
+
+export type Message = {
+  id: string;
+  campaignId: string | null;
+  clientId: string;
+  channel: "sms" | "email" | "whatsapp";
+  status: "queued" | "sent" | "delivered" | "read" | "failed";
+  body: string;
+  createdAt: string;
+};
+
+export type WaitlistEntry = {
+  id: string;
+  clientId: string;
+  serviceId: string;
+  windowDay: number; // -1 = any
+  filledAt: string | null;
+};
+
+export type CustomerPhoto = {
+  id: string;
+  clientId: string;
+  url: string;
+  kind: "before" | "after" | "reference";
 };
 
 export type AppointmentStatus =
@@ -74,6 +146,7 @@ export type SalonSettings = {
   timezone: string;
   onboardingComplete: boolean;
   calendarConnected: boolean;
+  weeklyHours: WeeklyHours;
 };
 
 export type SalonState = {
@@ -82,6 +155,13 @@ export type SalonState = {
   staff: Staff[];
   clients: Client[];
   appointments: Appointment[];
+  membershipPlans: MembershipPlan[];
+  memberships: MembershipUser[];
+  loyaltyLedger: LoyaltyTransaction[];
+  campaigns: Campaign[];
+  messages: Message[];
+  waitlist: WaitlistEntry[];
+  photos: CustomerPhoto[];
 };
 
 export const CATEGORY_STYLES: Record<
