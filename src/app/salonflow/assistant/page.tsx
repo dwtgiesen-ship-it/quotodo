@@ -41,19 +41,39 @@ export default function AssistantPage() {
     { role: "assistant", text: `Hi! I'm your SalonFlow assistant. I can answer questions about ${salon.state.settings.name} and book appointments for you. Try one of the suggestions below.` },
   ]);
   const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   function scroll() {
     requestAnimationFrame(() => endRef.current?.scrollIntoView({ behavior: "smooth" }));
   }
 
-  function send(text: string) {
-    if (!text.trim()) return;
+  async function send(text: string) {
+    if (!text.trim() || busy) return;
     const userMsg: Msg = { role: "user", text };
-    const reply = respond(text, salon);
-    setMessages((m) => [...m, userMsg, reply]);
+    const history = [...messages, userMsg];
+    setMessages(history);
     setInput("");
+    setBusy(true);
     scroll();
+    try {
+      // Try the real Claude agent; it returns { configured:false } when no API key is set.
+      const apiMessages = history
+        .slice(history.findIndex((m) => m.role === "user"))
+        .map((m) => ({ role: m.role, content: m.text }));
+      const res = await fetch("/api/salonflow/assistant", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ messages: apiMessages }) });
+      const data = await res.json();
+      if (res.ok && data.configured) {
+        setMessages((m) => [...m, { role: "assistant", text: data.message, proposal: data.proposal }]);
+      } else {
+        setMessages((m) => [...m, respond(text, salon)]);
+      }
+    } catch {
+      setMessages((m) => [...m, respond(text, salon)]);
+    } finally {
+      setBusy(false);
+      scroll();
+    }
   }
 
   function confirmBooking(idx: number, p: Proposal) {
@@ -94,6 +114,17 @@ export default function AssistantPage() {
             </div>
           </div>
         ))}
+        {busy && (
+          <div className="flex justify-start">
+            <div className="rounded-2xl border border-[#e6e7e7] bg-white px-4 py-3">
+              <div className="flex items-center gap-1">
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="size-1.5 animate-bounce rounded-full bg-[#9fa5a4]" style={{ animationDelay: `${i * 120}ms` }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         <div ref={endRef} />
       </div>
 
