@@ -1,8 +1,13 @@
-// SalonFlow — local development schema (SQLite, zero external services).
-// Production uses the Postgres + RLS schema in docs/salonflow/prisma/schema.prisma.
-// SQLite has no native enums or scalar lists, so enum-ish fields are strings and
-// list/JSON fields (serviceIds, tags) are stored as JSON strings. The app-layer
-// TypeScript unions in src/app/salonflow/lib/types.ts constrain the values.
+// Schedulemode — application schema (PostgreSQL).
+// Enum-ish fields are strings and list/JSON fields (serviceIds, tags) are stored
+// as JSON strings; the app-layer TypeScript unions in
+// src/app/salonflow/lib/types.ts constrain the values. All field types here are
+// portable, so the same schema runs on any Postgres (Neon, Supabase, Vercel
+// Postgres, RDS, or a local container — see docker-compose.yml).
+//
+// DATABASE_URL  — pooled connection string used at runtime.
+// DIRECT_URL    — direct (non-pooled) connection for `prisma db push`/migrations.
+//                 On Neon/Supabase set both; elsewhere use the same value.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,8 +15,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Salon {

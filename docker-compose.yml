@@ -1,0 +1,26 @@
+# Optional: a local PostgreSQL for development that matches production.
+#   docker compose up -d
+# Then set in .env:
+#   DATABASE_URL=postgresql://schedulemode:schedulemode@localhost:5432/schedulemode
+#   DIRECT_URL=postgresql://schedulemode:schedulemode@localhost:5432/schedulemode
+#   npm run db:setup   # push schema + seed demo data
+services:
+  db:
+    image: postgres:16
+    container_name: schedulemode-db
+    environment:
+      POSTGRES_USER: schedulemode
+      POSTGRES_PASSWORD: schedulemode
+      POSTGRES_DB: schedulemode
+    ports:
+      - "5432:5432"
+    volumes:
+      - schedulemode_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U schedulemode"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  schedulemode_pgdata:
