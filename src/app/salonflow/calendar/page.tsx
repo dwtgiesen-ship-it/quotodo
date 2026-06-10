@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   Check,
   ChevronDown,
@@ -27,50 +28,62 @@ import {
 const HOURS = Array.from({ length: Math.floor(DAY_END - DAY_START) + 1 }, (_, i) => DAY_START + i);
 const GRID_HEIGHT = (DAY_END - DAY_START) * HOUR_HEIGHT;
 
+function snap(hour: number) {
+  return Math.round(hour * 4) / 4; // 15-min grid
+}
+
 export default function CalendarPage() {
-  const { state, serviceById, clientById, staffById, setStatus } = useSalon();
+  const { state, serviceById, clientById, moveAppointment, setStatus } = useSalon();
   const [view, setView] = useState<"day" | "week">("week");
   const [selectedId, setSelectedId] = useState<string | null>("ap-4");
+  const [quick, setQuick] = useState<{ day: number; start: number } | null>(null);
+  const colRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const visibleDays = view === "week" ? DAYS : DAYS.slice(0, 1);
   const selected = state.appointments.find((a) => a.id === selectedId) ?? null;
 
+  function handleDrop(e: React.DragEvent, dayIndex: number) {
+    e.preventDefault();
+    const id = e.dataTransfer.getData("text/appt");
+    const col = colRefs.current[dayIndex];
+    if (!id || !col) return;
+    const rect = col.getBoundingClientRect();
+    const start = snap(DAY_START + (e.clientY - rect.top) / HOUR_HEIGHT);
+    const res = moveAppointment(id, dayIndex, start);
+    if (res.ok) toast.success("Appointment moved");
+    else toast.error(res.reason);
+  }
+
+  function handleColClick(e: React.MouseEvent, dayIndex: number) {
+    const col = colRefs.current[dayIndex];
+    if (!col || e.target !== col) return; // only on empty background
+    const start = snap(DAY_START + (e.clientY - col.getBoundingClientRect().top) / HOUR_HEIGHT);
+    setQuick({ day: dayIndex, start });
+  }
+
   return (
     <div className="flex h-full">
       <div className="flex min-w-0 flex-1 flex-col bg-white">
-        {/* toolbar */}
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#e6e7e7] px-5">
           <div className="flex items-center gap-3">
-            <button className="rounded-full border border-[#e1e2e2] px-3.5 py-1.5 text-[13px] font-semibold hover:bg-[#f4f5f4]">
-              TODAY
-            </button>
+            <button className="rounded-full border border-[#e1e2e2] px-3.5 py-1.5 text-[13px] font-semibold hover:bg-[#f4f5f4]">TODAY</button>
             <div className="flex items-center gap-0.5 text-[#6b7280]">
               <button className="grid size-7 place-items-center rounded-md hover:bg-[#f4f5f4]"><ChevronLeft className="size-4" /></button>
               <button className="grid size-7 place-items-center rounded-md hover:bg-[#f4f5f4]"><ChevronRight className="size-4" /></button>
             </div>
-            <button className="flex items-center gap-1.5 text-[15px] font-semibold">
-              August 2025 <ChevronDown className="size-4 text-[#9fa5a4]" />
-            </button>
+            <button className="flex items-center gap-1.5 text-[15px] font-semibold">August 2025 <ChevronDown className="size-4 text-[#9fa5a4]" /></button>
+            <span className="hidden text-[12px] text-[#9fa5a4] lg:inline">· drag to reschedule · click a gap to book</span>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/salonflow/book" className="flex items-center gap-1.5 rounded-lg bg-[#1f2a4d] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[#28356180]">
-              <Plus className="size-4" /> New booking
-            </Link>
+            <button onClick={() => setQuick({ day: 0, start: 12 })} className="flex items-center gap-1.5 rounded-lg bg-[#1f2a4d] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[#28356180]"><Plus className="size-4" /> New booking</button>
             <div className="flex items-center rounded-lg bg-[#f0f1f1] p-0.5 text-[13px] font-medium">
               {(["day", "week"] as const).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  className={`rounded-md px-4 py-1 capitalize ${view === v ? "bg-[#2c2f2e] text-white" : "text-[#6b7280]"}`}
-                >
-                  {v}
-                </button>
+                <button key={v} onClick={() => setView(v)} className={`rounded-md px-4 py-1 capitalize ${view === v ? "bg-[#2c2f2e] text-white" : "text-[#6b7280]"}`}>{v}</button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* grid */}
         <div className="min-h-0 flex-1 overflow-auto">
           <div className="sticky top-0 z-10 flex border-b border-[#e6e9ee] bg-white">
             <div className="w-14 shrink-0" />
@@ -85,26 +98,23 @@ export default function CalendarPage() {
           <div className="flex" style={{ height: GRID_HEIGHT }}>
             <div className="w-14 shrink-0">
               {HOURS.slice(0, -1).map((h) => {
-                const hour = Math.floor(h);
-                const period = hour >= 12 ? "PM" : "AM";
-                const display = hour % 12 === 0 ? 12 : hour % 12;
-                return (
-                  <div key={h} className="relative pr-2 text-right" style={{ height: HOUR_HEIGHT }}>
-                    <span className="absolute -top-2 right-2 text-[11px] font-medium text-[#9fa5a4]">{display} {period}</span>
-                  </div>
-                );
+                const hour = Math.floor(h); const period = hour >= 12 ? "PM" : "AM"; const display = hour % 12 === 0 ? 12 : hour % 12;
+                return <div key={h} className="relative pr-2 text-right" style={{ height: HOUR_HEIGHT }}><span className="absolute -top-2 right-2 text-[11px] font-medium text-[#9fa5a4]">{display} {period}</span></div>;
               })}
             </div>
             {visibleDays.map((d, dayIndex) => (
-              <div key={d.label} className="relative flex-1 border-l border-[#eef0f2]">
-                {HOURS.slice(1).map((h) => (
-                  <div key={h} className="absolute inset-x-0 border-t border-[#eef0f2]" style={{ top: (h - DAY_START) * HOUR_HEIGHT }} />
+              <div
+                key={d.label}
+                ref={(el) => { colRefs.current[dayIndex] = el; }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => handleDrop(e, dayIndex)}
+                onClick={(e) => handleColClick(e, dayIndex)}
+                className="relative flex-1 cursor-copy border-l border-[#eef0f2]"
+              >
+                {HOURS.slice(1).map((h) => (<div key={h} className="pointer-events-none absolute inset-x-0 border-t border-[#eef0f2]" style={{ top: (h - DAY_START) * HOUR_HEIGHT }} />))}
+                {state.appointments.filter((a) => a.day === dayIndex && a.status !== "cancelled").map((appt) => (
+                  <Card key={appt.id} appt={appt} selected={appt.id === selectedId} onSelect={setSelectedId} serviceName={serviceById(appt.serviceId)?.name ?? ""} clientName={`${clientById(appt.clientId)?.firstName ?? ""} ${clientById(appt.clientId)?.lastName ?? ""}`} category={serviceById(appt.serviceId)?.category ?? "custom"} />
                 ))}
-                {state.appointments
-                  .filter((a) => a.day === dayIndex && a.status !== "cancelled")
-                  .map((appt) => (
-                    <Card key={appt.id} appt={appt} selected={appt.id === selectedId} onSelect={setSelectedId} serviceName={serviceById(appt.serviceId)?.name ?? ""} clientName={clientById(appt.clientId)?.firstName + " " + (clientById(appt.clientId)?.lastName ?? "")} category={serviceById(appt.serviceId)?.category ?? "custom"} />
-                  ))}
               </div>
             ))}
           </div>
@@ -112,25 +122,12 @@ export default function CalendarPage() {
       </div>
 
       <Checkout appointment={selected} onClose={() => setSelectedId(null)} onStatus={setStatus} />
+      {quick && <QuickBook day={quick.day} start={quick.start} onClose={() => setQuick(null)} onBooked={(id) => { setSelectedId(id); setQuick(null); }} />}
     </div>
   );
 }
 
-function Card({
-  appt,
-  selected,
-  onSelect,
-  serviceName,
-  clientName,
-  category,
-}: {
-  appt: Appointment;
-  selected: boolean;
-  onSelect: (id: string) => void;
-  serviceName: string;
-  clientName: string;
-  category: keyof typeof CATEGORY_STYLES;
-}) {
+function Card({ appt, selected, onSelect, serviceName, clientName, category }: { appt: Appointment; selected: boolean; onSelect: (id: string) => void; serviceName: string; clientName: string; category: keyof typeof CATEGORY_STYLES }) {
   const style = CATEGORY_STYLES[category];
   const top = (appt.start - DAY_START) * HOUR_HEIGHT;
   const height = (appt.end - appt.start) * HOUR_HEIGHT;
@@ -138,15 +135,11 @@ function Card({
   const done = appt.status === "completed";
   return (
     <button
+      draggable
+      onDragStart={(e) => { e.dataTransfer.setData("text/appt", appt.id); e.dataTransfer.effectAllowed = "move"; }}
       onClick={() => onSelect(appt.id)}
-      style={{
-        top: top + 1,
-        height: height - 2,
-        backgroundColor: style.fill,
-        boxShadow: selected ? `0 0 0 2px ${style.accent}` : undefined,
-        opacity: done ? 0.55 : 1,
-      }}
-      className="absolute inset-x-1 overflow-hidden rounded-md border-l-[3px] px-2 py-1 text-left transition-shadow hover:shadow-md"
+      style={{ top: top + 1, height: height - 2, backgroundColor: style.fill, boxShadow: selected ? `0 0 0 2px ${style.accent}` : undefined, opacity: done ? 0.55 : 1 }}
+      className="absolute inset-x-1 cursor-grab overflow-hidden rounded-md border-l-[3px] px-2 py-1 text-left transition-shadow hover:shadow-md active:cursor-grabbing"
     >
       <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-[3px]" style={{ backgroundColor: style.accent }} />
       <div className="truncate text-[10px] font-semibold uppercase tracking-wide" style={{ color: style.accent }}>{serviceName}</div>
@@ -161,91 +154,78 @@ function Card({
   );
 }
 
-function Checkout({
-  appointment,
-  onClose,
-  onStatus,
-}: {
-  appointment: Appointment | null;
-  onClose: () => void;
-  onStatus: (id: string, status: Appointment["status"]) => void;
-}) {
-  const { serviceById, clientById, staffById, state } = useSalon();
-  if (!appointment) {
-    return (
-      <aside className="hidden w-[340px] shrink-0 flex-col items-center justify-center border-l border-[#e6e7e7] bg-white px-6 text-center md:flex">
-        <p className="text-[13px] text-[#9fa5a4]">Select an appointment to view checkout.</p>
-      </aside>
-    );
+function QuickBook({ day, start, onClose, onBooked }: { day: number; start: number; onClose: () => void; onBooked: (id: string) => void }) {
+  const { state, book } = useSalon();
+  const [serviceId, setServiceId] = useState(state.services[0]?.id ?? "");
+  const [clientId, setClientId] = useState("");
+  const svc = state.services.find((s) => s.id === serviceId);
+  const eligibleStaff = state.staff.filter((m) => !serviceId || m.serviceIds.includes(serviceId));
+  const [staffId, setStaffId] = useState(eligibleStaff[0]?.id ?? state.staff[0]?.id ?? "");
+
+  function submit() {
+    if (!serviceId || !staffId || !clientId) return;
+    const res = book({ serviceId, staffId, clientId, day, start, source: "dashboard" });
+    if (res.ok) { toast.success("Appointment booked"); onBooked(res.appointment.id); }
+    else toast.error(res.reason);
   }
-  const svc = serviceById(appointment.serviceId);
-  const client = clientById(appointment.clientId);
-  const staff = staffById(appointment.staffId);
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between"><h3 className="text-[16px] font-semibold">New booking</h3><button onClick={onClose} className="text-[#9fa5a4]"><X className="size-4" /></button></div>
+        <p className="mb-3 text-[12px] text-[#9fa5a4]">{DAYS[day].label} {DAYS[day].date} · {fmtRange(start, start).split(" - ")[0]}{svc ? ` · ${svc.durationMin} min` : ""}</p>
+        <label className="mb-1.5 block text-[12px] font-medium text-[#6b7280]">Client</label>
+        <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="mb-3 w-full rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px]"><option value="">Select…</option>{state.clients.map((c) => <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>)}</select>
+        <label className="mb-1.5 block text-[12px] font-medium text-[#6b7280]">Service</label>
+        <select value={serviceId} onChange={(e) => { setServiceId(e.target.value); }} className="mb-3 w-full rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px]">{state.services.map((s) => <option key={s.id} value={s.id}>{s.name} · {money(s.priceMinor, state.settings.currency)}</option>)}</select>
+        <label className="mb-1.5 block text-[12px] font-medium text-[#6b7280]">Staff</label>
+        <select value={staffId} onChange={(e) => setStaffId(e.target.value)} className="mb-4 w-full rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px]">{eligibleStaff.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
+        <button disabled={!clientId || !serviceId || !staffId} onClick={submit} className="w-full rounded-lg bg-[#1f2a4d] py-2.5 text-[14px] font-semibold text-white disabled:opacity-40">Book appointment</button>
+      </div>
+    </div>
+  );
+}
+
+function Checkout({ appointment, onClose, onStatus }: { appointment: Appointment | null; onClose: () => void; onStatus: (id: string, status: Appointment["status"]) => void }) {
+  const { serviceById, clientById, staffById, state } = useSalon();
+  if (!appointment) return <aside className="hidden w-[340px] shrink-0 flex-col items-center justify-center border-l border-[#e6e7e7] bg-white px-6 text-center md:flex"><p className="text-[13px] text-[#9fa5a4]">Select an appointment to view checkout.</p></aside>;
+  const svc = serviceById(appointment.serviceId); const client = clientById(appointment.clientId); const staff = staffById(appointment.staffId);
   if (!svc || !client) return null;
+
+  function status(s: Appointment["status"], label: string) { onStatus(appointment!.id, s); toast.success(label); }
 
   return (
     <aside className="flex w-[340px] shrink-0 flex-col border-l border-[#e6e7e7] bg-white">
-      <div className="flex items-center justify-between px-5 py-3.5">
-        <h2 className="text-[15px] font-semibold">Checkout</h2>
-        <button onClick={onClose} className="grid size-7 place-items-center rounded-md text-[#9fa5a4] hover:bg-[#f4f5f4]"><X className="size-4" /></button>
-      </div>
-
+      <div className="flex items-center justify-between px-5 py-3.5"><h2 className="text-[15px] font-semibold">Checkout</h2><button onClick={onClose} className="grid size-7 place-items-center rounded-md text-[#9fa5a4] hover:bg-[#f4f5f4]"><X className="size-4" /></button></div>
       <div className="flex items-center gap-3 px-5 pb-3">
-        <div className="grid size-10 shrink-0 place-items-center rounded-full bg-[#cfe4e2] text-sm font-semibold text-[#3f968c]">
-          {client.firstName[0]}{client.lastName[0] ?? ""}
-        </div>
-        <div className="min-w-0 flex-1">
-          <Link href="/salonflow/clients" className="text-[14px] font-semibold hover:underline">{client.firstName} {client.lastName}</Link>
-          <div className="text-[12px] text-[#9fa5a4]">Client since {new Date(client.since).toLocaleDateString("en", { month: "long", year: "numeric" })}</div>
-        </div>
+        <div className="grid size-10 shrink-0 place-items-center rounded-full bg-[#cfe4e2] text-sm font-semibold text-[#3f968c]">{client.firstName[0]}{client.lastName[0] ?? ""}</div>
+        <div className="min-w-0 flex-1"><Link href="/salonflow/clients" className="text-[14px] font-semibold hover:underline">{client.firstName} {client.lastName}</Link><div className="text-[12px] text-[#9fa5a4]">Client since {new Date(client.since).toLocaleDateString("en", { month: "long", year: "numeric" })}</div></div>
       </div>
-
-      {client.tags.includes("Friends & Family") && (
-        <div className="mx-5 mb-4 rounded-lg bg-[#fdf3d4] px-3 py-2.5 text-[13px] font-medium text-[#8a6d2f]">Gets Friends &amp; Family discount</div>
-      )}
-
+      {client.tags.includes("Friends & Family") && <div className="mx-5 mb-4 rounded-lg bg-[#fdf3d4] px-3 py-2.5 text-[13px] font-medium text-[#8a6d2f]">Gets Friends &amp; Family discount</div>}
       <div className="border-y border-[#eef0f2] px-5 py-3">
-        <div className="flex items-baseline justify-between">
-          <span className="text-[14px] font-semibold">{svc.name}</span>
-          <span className="text-[14px] font-semibold">{money(svc.priceMinor, state.settings.currency)}</span>
-        </div>
+        <div className="flex items-baseline justify-between"><span className="text-[14px] font-semibold">{svc.name}</span><span className="text-[14px] font-semibold">{money(svc.priceMinor, state.settings.currency)}</span></div>
         <div className="text-[12px] text-[#9fa5a4]">with {staff?.name ?? "—"} · {fmtRange(appointment.start, appointment.end)}</div>
       </div>
-
       <div className="flex-1 px-5 py-4">
         <div className="text-[11px] font-semibold uppercase tracking-wide text-[#9fa5a4]">Status</div>
         <div className="mt-2 flex flex-wrap gap-2">
-          <StatusPill label="Booked" active={appointment.status === "booked"} onClick={() => onStatus(appointment.id, "booked")} />
-          <StatusPill label="Confirmed" active={appointment.status === "confirmed"} onClick={() => onStatus(appointment.id, "confirmed")} />
-          <StatusPill label="Completed" active={appointment.status === "completed"} onClick={() => onStatus(appointment.id, "completed")} icon={Check} />
+          <Pill label="Booked" active={appointment.status === "booked"} onClick={() => status("booked", "Marked booked")} />
+          <Pill label="Confirmed" active={appointment.status === "confirmed"} onClick={() => status("confirmed", "Confirmed")} />
+          <Pill label="Completed" active={appointment.status === "completed"} onClick={() => status("completed", "Marked completed")} icon={Check} />
         </div>
         <div className="mt-4 flex gap-2">
-          <button onClick={() => onStatus(appointment.id, "no_show")} className="flex items-center gap-1.5 rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px] font-medium text-[#6b7280] hover:bg-[#f4f5f4]">
-            <UserX className="size-4" /> No-show
-          </button>
-          <button onClick={() => onStatus(appointment.id, "cancelled")} className="flex items-center gap-1.5 rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px] font-medium text-[#d06277] hover:bg-[#fdf0f2]">
-            <X className="size-4" /> Cancel
-          </button>
+          <button onClick={() => status("no_show", "Marked no-show")} className="flex items-center gap-1.5 rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px] font-medium text-[#6b7280] hover:bg-[#f4f5f4]"><UserX className="size-4" /> No-show</button>
+          <button onClick={() => { status("cancelled", "Appointment cancelled"); onClose(); }} className="flex items-center gap-1.5 rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px] font-medium text-[#d06277] hover:bg-[#fdf0f2]"><X className="size-4" /> Cancel</button>
         </div>
       </div>
-
       <div className="border-t border-[#eef0f2] p-4">
-        <div className="mb-3 flex items-center justify-between text-[14px]">
-          <span className="font-semibold">Total due</span>
-          <span className="font-semibold">{money(svc.priceMinor, state.settings.currency)}</span>
-        </div>
-        <button className="w-full rounded-lg bg-[#1f2a4d] py-3 text-[14px] font-semibold tracking-wide text-white hover:bg-[#28356180]">
-          GO TO PAYMENTS
-        </button>
+        <div className="mb-3 flex items-center justify-between text-[14px]"><span className="font-semibold">Total due</span><span className="font-semibold">{money(svc.priceMinor, state.settings.currency)}</span></div>
+        <button onClick={() => toast.success("Payment captured (demo — Stripe in production)")} className="w-full rounded-lg bg-[#1f2a4d] py-3 text-[14px] font-semibold tracking-wide text-white hover:bg-[#28356180]">GO TO PAYMENTS</button>
       </div>
     </aside>
   );
 }
 
-function StatusPill({ label, active, onClick, icon: Icon }: { label: string; active: boolean; onClick: () => void; icon?: typeof Check }) {
-  return (
-    <button onClick={onClick} className={`flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-medium ${active ? "bg-[#2c2f2e] text-white" : "bg-[#f0f1f1] text-[#6b7280] hover:bg-[#e6e7e7]"}`}>
-      {Icon && <Icon className="size-3.5" />} {label}
-    </button>
-  );
+function Pill({ label, active, onClick, icon: Icon }: { label: string; active: boolean; onClick: () => void; icon?: typeof Check }) {
+  return <button onClick={onClick} className={`flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-medium ${active ? "bg-[#2c2f2e] text-white" : "bg-[#f0f1f1] text-[#6b7280] hover:bg-[#e6e7e7]"}`}>{Icon && <Icon className="size-3.5" />} {label}</button>;
 }
