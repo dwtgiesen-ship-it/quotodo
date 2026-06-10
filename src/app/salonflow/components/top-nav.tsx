@@ -6,6 +6,7 @@ import {
   BarChart3,
   Calendar as CalendarIcon,
   LayoutGrid,
+  Rocket,
   Scissors,
   Sparkles,
   Users,
@@ -13,6 +14,7 @@ import {
 import { useSalon } from "../lib/store";
 
 const NAV = [
+  { href: "/salonflow/onboarding", label: "Get started", icon: Rocket },
   { href: "/salonflow/dashboard", label: "Dashboard", icon: BarChart3 },
   { href: "/salonflow/calendar", label: "Calendar", icon: CalendarIcon },
   { href: "/salonflow/clients", label: "Clients", icon: Users },

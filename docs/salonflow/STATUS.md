@@ -1,82 +1,93 @@
 # SalonFlow — Build Status (read me first)
 
-Last updated: autonomous overnight session.
+Last updated: second autonomous session (added a real backend).
 
-## What's actually running — a working MVP app
+## Run it locally
 
-A navigable, interactive SalonFlow application is built into this Next.js app under
-**`/salonflow`** (start the app with `npm run dev`, open `http://localhost:3000/salonflow`).
-It is real, working software — not a clickable mockup — backed by a shared in-browser store
-so every screen reads and writes the same data.
+```bash
+npm install
+npm run db:push     # create the local SQLite database (prisma/dev.db)
+npm run db:seed     # load the demo salon (5 services, 3 staff, 8 clients, 18 appts)
+npm run dev         # http://localhost:3000/salonflow
+npm test            # 13 passing scheduling-logic tests
+```
+
+## What's running — a real full-stack MVP
+
+A navigable SalonFlow application under **`/salonflow`**, now backed by a **real database
+and REST API** (not just an in-browser store).
 
 | Route | What works |
 |---|---|
-| `/salonflow/dashboard` | Live KPIs (revenue, bookings, no-shows, AI-booked), revenue-by-day chart, top services, staff performance, AI-insight cards — all **computed from the store** |
-| `/salonflow/calendar` | Week/Day views, color-coded appointments, **clickable** with a live Checkout panel; change status (booked/confirmed/completed/no-show/cancel) and the grid updates |
-| `/salonflow/clients` | Searchable CRM, client detail panel (spend, points, tier, tags, notes, appointment history), **add-client modal that persists** |
-| `/salonflow/services` | Service list with **add / edit / delete** (name, category, duration, price, deposit, online-bookable) |
-| `/salonflow/book` | Full customer **booking flow** (service → staff → day → time → client → confirm) with **real availability** (no double-booking) that **writes a new appointment onto the calendar** |
-| `/salonflow/assistant` | Working assistant: answers revenue/retention/quiet-day/top-service questions from live data, and **parses “book … for … with … on … at …” into a confirm-gated booking that actually lands on the calendar** |
+| `/salonflow/onboarding` | 6-step setup wizard (business → services → team → hours → calendar → go-live) that **persists settings via the API** |
+| `/salonflow/dashboard` | Live KPIs, revenue chart, top services, staff performance, AI-insight cards — computed from API data |
+| `/salonflow/calendar` | Week/day, color-coded, clickable, live checkout panel, status transitions — all persisted |
+| `/salonflow/clients` | Searchable CRM, detail panel, add-client (persisted) |
+| `/salonflow/services` | Add / edit / delete services (persisted) |
+| `/salonflow/book` | Customer booking flow with **server-checked availability** (no double-booking) that writes to the DB |
+| `/salonflow/assistant` | Rule-based assistant that answers from live data and books via the real API behind a confirm gate |
 
-Try the loop: open the **Assistant**, click *"Book a Custom Facial for Mark with Andre on
-Friday at 2pm"*, hit **Confirm booking**, then open the **Calendar** — the appointment is
-there (tagged `AI`). Or use the **Booking page** and watch it appear. State persists in
-`localStorage` (clear it to reset the demo).
+## What is REAL now (new this session)
 
-There is also a separate, static pixel-faithful reference of the GlossGenius screen at
-**`/calendar`** (the original prototype that kicked this off).
+- **Database**: SQLite via **Prisma** (`prisma/schema.prisma`), seeded from `prisma/seed.ts`.
+- **REST API** under **`/api/salonflow/*`** — `state`, `availability`, `appointments`
+  (book / move / status / cancel, **idempotent**, **409 on conflict**), `clients`,
+  `services`, `settings`. Implemented in `src/lib/salonflow/repo.ts`.
+- **Shared, unit-tested scheduling logic** (`src/lib/salonflow/availability.ts`) — overlap,
+  conflict detection, bookable-slot computation. **13 vitest tests, all green.**
+- **Front-end wired to the API**: the store hydrates from `GET /api/salonflow/state` and
+  persists every mutation; re-hydrates from the server on any failure. Verified end-to-end —
+  a booking made through the UI assistant persists to SQLite and survives a page reload.
 
-## Verified
+Verified: `tsc --noEmit` clean · `npm test` 13/13 · all routes 200 · UI→API→DB→reload proven
+via headless Chromium (POST 201, conflict 409).
 
-- All `/salonflow/*` routes return 200 and compile under Next 16 / Turbopack.
-- `npx tsc --noEmit` passes clean.
-- Screens verified by headless-Chromium screenshots (dashboard, calendar, clients, booking,
-  assistant + the end-to-end AI booking flow).
+## What is still mock — needs YOUR credentials/decisions (not built; not faked)
 
-## What is mock vs real — read this honestly
+- **No auth** — Clerk is designed in `04`; the API is scoped to a single demo salon
+  (`DEMO_SALON_ID`). Production swaps this for the authenticated org + the RLS tenant guard.
+- **No payments** — Stripe designed in `02`/`04`; "Go to Payments"/deposits are UI only.
+- **No real calendar sync** — Google/MS/Apple two-way sync (the wedge) is architected in
+  `02 §5`; needs OAuth apps + secrets.
+- **No real comms** — SMS/email/WhatsApp are described, not sent.
+- **Assistant is rule-based**, not an LLM — no `ANTHROPIC_API_KEY` is available in this
+  environment. It performs real API actions behind a confirm gate to demonstrate the exact
+  production UX; production swaps in the Claude tool-using agent from `06-ai-assistant.md`
+  (the tool surface maps 1:1 to the `/api/salonflow/*` endpoints already built).
+- **SQLite, not Postgres** — chosen so the backend runs with zero external services. The
+  production Postgres + RLS schema lives in `docs/salonflow/prisma/schema.prisma`; the
+  field shapes match, so porting is mechanical.
 
-This is a **front-end MVP over an in-browser store**, deliberately. The production system is
-fully specified in the sibling docs (`01`–`07` + `prisma/schema.prisma`), but the following
-require **your credentials and decisions** and were **not** built (I won't fabricate them):
+## Architecture map (what was added)
 
-- **No backend / database** — the store is client-side (`lib/store.tsx`). Production swaps
-  the mutators for the REST API in `04-api-and-auth.md` against the Postgres/Prisma schema.
-- **No auth** — Clerk is designed in `04`; the demo assumes a logged-in owner.
-- **No payments** — Stripe is designed in `02`/`04`; "Go to Payments" and deposits are UI
-  only (no real charge).
-- **No calendar sync** — the Google/Microsoft/Apple two-way sync (the product wedge) is
-  architected in `02 §5` but needs OAuth apps + credentials to build.
-- **No real comms** — SMS/email/WhatsApp confirmations are described, not sent.
-- **The AI assistant is rule-based**, not an LLM. It performs real actions behind a
-  confirmation gate to demonstrate the exact production UX, but production swaps in the
-  Claude tool-using agent specified in `06-ai-assistant.md` (the `@anthropic-ai/sdk`
-  dependency is already in the project).
+```
+prisma/
+  schema.prisma          # SQLite dev schema
+  seed.ts                # demo seed (npm run db:seed)
+src/lib/
+  prisma.ts              # Prisma client singleton
+  salonflow/
+    availability.ts      # pure scheduling logic (tested)
+    availability.test.ts # 13 vitest tests
+    repo.ts              # Prisma-backed data access + DTO serializers
+    constants.ts         # DEMO_SALON_ID (= future authenticated tenant)
+src/app/api/salonflow/
+  state/                 # GET full salon state
+  availability/          # GET bookable slots
+  appointments/          # POST book; [id] PATCH move/status, DELETE cancel
+  clients/               # POST add
+  services/              # POST upsert; [id] DELETE
+  settings/              # PATCH
+src/app/salonflow/       # the UI (now API-backed); + onboarding/ wizard
+```
 
-## Suggested next steps (in priority order)
+## Suggested next steps (priority order)
 
-1. **Stand up the backend**: scaffold the NestJS API + Postgres/Prisma from
-   `prisma/schema.prisma` with RLS; point the store's mutators at it.
-2. **Clerk auth** + the tenant guard (`02 §3`).
+1. **Clerk auth** + replace `DEMO_SALON_ID` with the authenticated org; add the RLS tenant
+   guard when moving to Postgres.
+2. **Port to Postgres** using `docs/salonflow/prisma/schema.prisma` (enums/RLS) — repo layer
+   barely changes.
 3. **Stripe Connect** for deposits/payments.
-4. **Google two-way calendar sync** — highest-risk, most-defensible; do it first among
-   integrations (`02 §5`).
+4. **Google two-way calendar sync** — highest-risk, most-defensible; do it first.
 5. **Real Claude assistant** — replace `assistant/page.tsx`'s `respond()` with the tool-using
-   agent in `06`; the tool surface maps 1:1 to the API.
-
-## File map (the demo app)
-
-```
-src/app/salonflow/
-  layout.tsx              # nav + SalonProvider
-  page.tsx                # → redirect to /dashboard
-  components/top-nav.tsx
-  lib/types.ts            # domain types + helpers (mirrors prisma schema)
-  lib/seed.ts             # demo seed data
-  lib/store.tsx           # React-context store: selectors + mutators (= future API calls)
-  dashboard/page.tsx
-  calendar/page.tsx       # interactive calendar + checkout
-  clients/page.tsx        # CRM
-  services/page.tsx       # service management
-  book/page.tsx           # customer booking flow
-  assistant/page.tsx      # working assistant (rule-based stand-in for the Claude agent)
-```
+   agent in `06`; tools call the `/api/salonflow/*` endpoints that already exist.
