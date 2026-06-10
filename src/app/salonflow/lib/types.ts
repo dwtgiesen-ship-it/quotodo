@@ -1,4 +1,4 @@
-// SalonFlow MVP — shared domain types for the in-browser demo store.
+// Schedulemode MVP — shared domain types for the in-browser demo store.
 // Mirrors the production data model in docs/salonflow/prisma/schema.prisma,
 // trimmed to what the working demo needs.
 

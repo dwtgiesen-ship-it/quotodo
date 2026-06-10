@@ -1,6 +1,6 @@
 "use client";
 
-// SalonFlow assistant — working demo. This is a deterministic, rule-based stand-in for the
+// Schedulemode assistant — working demo. This is a deterministic, rule-based stand-in for the
 // production Claude tool-using agent described in docs/salonflow/06-ai-assistant.md. It reads
 // the live store and performs REAL actions (booking writes to the calendar) behind a
 // confirmation card — exactly the UX the production agent uses, minus the LLM.
@@ -38,7 +38,7 @@ const SUGGESTIONS = [
 export default function AssistantPage() {
   const salon = useSalon();
   const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", text: `Hi! I'm your SalonFlow assistant. I can answer questions about ${salon.state.settings.name} and book appointments for you. Try one of the suggestions below.` },
+    { role: "assistant", text: `Hi! I'm your Schedulemode assistant. I can answer questions about ${salon.state.settings.name} and book appointments for you. Try one of the suggestions below.` },
   ]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);

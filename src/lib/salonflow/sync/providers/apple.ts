@@ -55,13 +55,13 @@ export class AppleProvider implements CalendarProvider {
   }
   async createEvent(ctx: ConnectionCtx, ev: OutboundEvent) {
     const uid = `${crypto.randomUUID()}@salonflow`;
-    const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//SalonFlow//EN", "BEGIN:VEVENT", `UID:${uid}`, `DTSTART:${ev.startsAt.replace(/[-:]/g, "").replace(/\.\d+/, "")}`, `DTEND:${ev.endsAt.replace(/[-:]/g, "").replace(/\.\d+/, "")}`, `SUMMARY:${ev.summary}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Schedulemode//EN", "BEGIN:VEVENT", `UID:${uid}`, `DTSTART:${ev.startsAt.replace(/[-:]/g, "").replace(/\.\d+/, "")}`, `DTEND:${ev.endsAt.replace(/[-:]/g, "").replace(/\.\d+/, "")}`, `SUMMARY:${ev.summary}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
     const res = await fetch(`${ICLOUD}/${uid}.ics`, { method: "PUT", headers: { Authorization: basic(ctx), "Content-Type": "text/calendar" }, body: ics });
     if (!res.ok) throw new Error(`caldav PUT ${res.status}`);
     return { externalId: uid, etag: (res.headers.get("ETag") ?? "").replace(/"/g, "") };
   }
   async updateEvent(ctx: ConnectionCtx, externalId: string, ev: OutboundEvent, etag?: string) {
-    const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//SalonFlow//EN", "BEGIN:VEVENT", `UID:${externalId}`, `DTSTART:${ev.startsAt.replace(/[-:]/g, "").replace(/\.\d+/, "")}`, `DTEND:${ev.endsAt.replace(/[-:]/g, "").replace(/\.\d+/, "")}`, `SUMMARY:${ev.summary}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Schedulemode//EN", "BEGIN:VEVENT", `UID:${externalId}`, `DTSTART:${ev.startsAt.replace(/[-:]/g, "").replace(/\.\d+/, "")}`, `DTEND:${ev.endsAt.replace(/[-:]/g, "").replace(/\.\d+/, "")}`, `SUMMARY:${ev.summary}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
     const res = await fetch(`${ICLOUD}/${externalId}.ics`, { method: "PUT", headers: { Authorization: basic(ctx), "Content-Type": "text/calendar", ...(etag ? { "If-Match": `"${etag}"` } : {}) }, body: ics });
     if (!res.ok) throw new Error(`caldav PUT ${res.status}`);
     return { etag: (res.headers.get("ETag") ?? "").replace(/"/g, "") };

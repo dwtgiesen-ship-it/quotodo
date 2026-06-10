@@ -1,4 +1,4 @@
-// Seed data for the SalonFlow demo. Deterministic so the demo always looks good.
+// Seed data for the Schedulemode demo. Deterministic so the demo always looks good.
 
 import type { SalonState, WeeklyHours } from "./types";
 

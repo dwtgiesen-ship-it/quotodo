@@ -82,7 +82,7 @@ export default function CalendarSyncPage() {
         <Link href="/salonflow/settings" className="grid size-7 place-items-center rounded-md text-[#9fa5a4] hover:bg-white"><ChevronLeft className="size-4" /></Link>
         <h1 className="font-heading text-[22px] font-semibold tracking-tight">Calendar sync</h1>
       </div>
-      <p className="mb-5 ml-9 text-[13px] text-[#9fa5a4]">Two-way, real-time sync with Google, Microsoft 365 &amp; Apple. Personal events block bookings; SalonFlow appointments mirror to staff calendars.</p>
+      <p className="mb-5 ml-9 text-[13px] text-[#9fa5a4]">Two-way, real-time sync with Google, Microsoft 365 &amp; Apple. Personal events block bookings; Schedulemode appointments mirror to staff calendars.</p>
 
       {/* live status strip */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">

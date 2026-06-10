@@ -10,7 +10,7 @@ function isProtected(pathname: string): boolean {
   );
 }
 
-// SalonFlow preview gate: a simple shared-password (HTTP Basic) over the demo so
+// Schedulemode preview gate: a simple shared-password (HTTP Basic) over the demo so
 // a public preview URL isn't wide open. Active only when PREVIEW_PASS is set, so
 // local dev stays ungated. Provider webhooks are excluded (no Basic Auth header).
 function isPreviewPath(pathname: string): boolean {
@@ -29,13 +29,13 @@ function previewGate(request: NextRequest): NextResponse | null {
       if (u === user && p === pass) return null; // authorized
     } catch { /* fall through to 401 */ }
   }
-  return new NextResponse("Authentication required", { status: 401, headers: { "WWW-Authenticate": 'Basic realm="SalonFlow Preview", charset="UTF-8"' } });
+  return new NextResponse("Authentication required", { status: 401, headers: { "WWW-Authenticate": 'Basic realm="Schedulemode Preview", charset="UTF-8"' } });
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // SalonFlow lives entirely outside the Supabase/quotodo auth — gate it on its own
+  // Schedulemode lives entirely outside the Supabase/quotodo auth — gate it on its own
   // and return, never invoking updateSession (which needs Supabase env).
   if (isPreviewPath(pathname)) {
     return previewGate(request) ?? NextResponse.next();

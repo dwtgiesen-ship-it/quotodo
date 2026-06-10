@@ -22,7 +22,7 @@ const mono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SalonFlow — the easiest salon software in the world",
+  title: "Schedulemode — the easiest salon software in the world",
   description: "Booking, calendar, payments, clients and marketing in one place. Live in 10 minutes.",
 };
 

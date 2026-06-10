@@ -107,7 +107,7 @@ export async function pushAppointment(salonId: string, appointmentId: string) {
     const link = await prisma.externalEventLink.findUnique({ where: { connectionId_appointmentId: { connectionId: conn.id, appointmentId } } });
     const action = planOutbound(active, link ? { externalId: link.externalId, etag: link.etag } : undefined);
     const svc = await prisma.service.findUnique({ where: { id: appt.serviceId } });
-    const out = { summary: `SalonFlow: ${svc?.name ?? "Appointment"}`, startsAt: slotToIso(appt.day, appt.start), endsAt: slotToIso(appt.day, appt.end) };
+    const out = { summary: `Schedulemode: ${svc?.name ?? "Appointment"}`, startsAt: slotToIso(appt.day, appt.start), endsAt: slotToIso(appt.day, appt.end) };
     try {
       if (action.action === "create") {
         const r = await provider.createEvent(ctxOf(conn), out);

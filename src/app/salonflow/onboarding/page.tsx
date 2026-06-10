@@ -120,7 +120,7 @@ export default function OnboardingPage() {
         )}
 
         {step === 4 && (
-          <Wizard title="Connect your calendar" subtitle="Two-way sync keeps SalonFlow and your personal calendar perfectly aligned — no double bookings.">
+          <Wizard title="Connect your calendar" subtitle="Two-way sync keeps Schedulemode and your personal calendar perfectly aligned — no double bookings.">
             <div className="mb-5 grid grid-cols-3 gap-2">
               {["Google", "Microsoft 365", "Apple"].map((p) => (
                 <div key={p} className="rounded-lg border border-[#e6e7e7] px-3 py-4 text-center text-[13px] font-medium text-[#3f4544]">{p}</div>
@@ -137,7 +137,7 @@ export default function OnboardingPage() {
             <h2 className="font-heading text-[20px] font-semibold">You&apos;re live, {name}! 🎉</h2>
             <p className="mt-1 text-[13px] text-[#6b7280]">Setup took a couple of minutes. Share your booking link and start taking appointments.</p>
             <div className="mx-auto mt-4 flex max-w-sm items-center gap-2 rounded-lg border border-[#e6e7e7] bg-[#f8f9f9] px-3 py-2 text-[13px]">
-              <span className="flex-1 truncate text-[#3f4544]">salonflow.app/{state.settings.name.toLowerCase().replace(/\s+/g, "")}</span>
+              <span className="flex-1 truncate text-[#3f4544]">schedulemode.app/{state.settings.name.toLowerCase().replace(/\s+/g, "")}</span>
               <Copy className="size-4 text-[#9fa5a4]" />
             </div>
             <div className="mt-5 flex justify-center gap-2">

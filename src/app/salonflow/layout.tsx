@@ -5,11 +5,11 @@ import { TopNav } from "./components/top-nav";
 import { RoleProvider } from "./components/role";
 
 export const metadata: Metadata = {
-  title: "SalonFlow",
+  title: "Schedulemode",
   description: "The easiest salon management software in the world.",
 };
 
-export default function SalonFlowLayout({ children }: { children: React.ReactNode }) {
+export default function SchedulemodeLayout({ children }: { children: React.ReactNode }) {
   return (
     <RoleProvider>
       <SalonProvider>

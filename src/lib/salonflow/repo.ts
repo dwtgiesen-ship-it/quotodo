@@ -1,4 +1,4 @@
-// Server-side data access for SalonFlow. Serializes Prisma rows into the DTO shapes
+// Server-side data access for Schedulemode. Serializes Prisma rows into the DTO shapes
 // the front-end uses (src/app/salonflow/lib/types.ts) and implements the mutations
 // that, in production, map to the REST endpoints in docs/salonflow/04-api-and-auth.md.
 

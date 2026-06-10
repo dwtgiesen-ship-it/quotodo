@@ -1,4 +1,4 @@
-// Self-contained email + password auth for SalonFlow. No external provider:
+// Self-contained email + password auth for Schedulemode. No external provider:
 // passwords are hashed with Node's built-in scrypt, sessions are opaque tokens
 // stored in the DB and referenced by an httpOnly cookie. Swappable for Clerk
 // later — the rest of the app only depends on getSalonId() / getCurrentUser().

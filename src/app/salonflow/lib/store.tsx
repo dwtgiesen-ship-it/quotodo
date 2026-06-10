@@ -1,6 +1,6 @@
 "use client";
 
-// Client-side store for SalonFlow, now backed by the real API.
+// Client-side store for Schedulemode, now backed by the real API.
 // - Hydrates from GET /api/salonflow/state on mount (SQLite via Prisma).
 // - Each mutator updates local state optimistically for instant UX, then persists
 //   to the API; on failure it re-hydrates from the server (source of truth).

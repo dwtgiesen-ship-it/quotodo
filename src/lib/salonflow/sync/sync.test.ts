@@ -54,7 +54,7 @@ describe("calendar sync → availability", () => {
   it("ignores our own mirror echoing back (no duplicate busy block)", async () => {
     // simulate an outbound mirror link, then an inbound event with the same etag
     await prisma.externalEventLink.create({ data: { salonId: T, connectionId: connId, appointmentId: "appt-x", externalId: "ours-1", etag: "match" } });
-    mockProvider.injectExternalEvent(connId, { externalId: "ours-1", etag: "match", summary: "SalonFlow: Facial", startsAt: slotToIso(0, 14), endsAt: slotToIso(0, 15), cancelled: false });
+    mockProvider.injectExternalEvent(connId, { externalId: "ours-1", etag: "match", summary: "Schedulemode: Facial", startsAt: slotToIso(0, 14), endsAt: slotToIso(0, 15), cancelled: false });
     await pull(connId);
     const block = await prisma.externalBusyBlock.findFirst({ where: { connectionId: connId, externalId: "ours-1" } });
     expect(block).toBeNull(); // echo suppressed — not turned into unavailability
