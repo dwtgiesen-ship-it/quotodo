@@ -25,7 +25,7 @@ export default function ServicesPage() {
     <div className="mx-auto max-w-4xl px-6 py-6">
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Services</h1>
+          <h1 className="font-heading text-[22px] font-semibold tracking-tight">Services</h1>
           <p className="text-[13px] text-[#9fa5a4]">{state.services.length} services · prices in {state.settings.currency}</p>
         </div>
         <button onClick={() => setEditing({ ...BLANK })} className="flex items-center gap-1.5 rounded-lg bg-[#1f2a4d] px-3.5 py-2 text-[13px] font-medium text-white hover:bg-[#28356180]">

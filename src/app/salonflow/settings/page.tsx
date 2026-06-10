@@ -29,7 +29,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-6">
-      <h1 className="mb-5 text-[22px] font-semibold tracking-tight">Settings</h1>
+      <h1 className="mb-5 font-heading text-[22px] font-semibold tracking-tight">Settings</h1>
 
       <Section title="Business">
         <Row label="Business name">

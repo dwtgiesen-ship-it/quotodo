@@ -36,7 +36,7 @@ export default function MessagesPage() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-6">
       <div className="mb-4">
-        <h1 className="text-[22px] font-semibold tracking-tight">Messages</h1>
+        <h1 className="font-heading text-[22px] font-semibold tracking-tight">Messages</h1>
         <p className="text-[13px] text-[#9fa5a4]">Automated SMS, email &amp; WhatsApp lifecycle campaigns</p>
       </div>
 

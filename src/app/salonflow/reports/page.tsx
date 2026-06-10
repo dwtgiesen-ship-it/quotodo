@@ -71,7 +71,7 @@ export default function ReportsPage() {
     <div className="mx-auto max-w-6xl px-6 py-6">
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Reports</h1>
+          <h1 className="font-heading text-[22px] font-semibold tracking-tight">Reports</h1>
           <p className="text-[13px] text-[#9fa5a4]">This week · {state.settings.name}</p>
         </div>
         <button onClick={exportCsv} className="flex items-center gap-1.5 rounded-lg border border-[#e6e7e7] bg-white px-3.5 py-2 text-[13px] font-medium hover:bg-[#f4f5f4]"><Download className="size-4" /> Export CSV</button>

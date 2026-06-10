@@ -57,7 +57,7 @@ export default function BookPage() {
     <div className="mx-auto max-w-lg px-4 py-8">
       <div className="rounded-2xl border border-[#e6e7e7] bg-white p-6 shadow-sm">
         <div className="mb-1 flex items-center justify-between">
-          <h1 className="text-[18px] font-semibold">Book at {state.settings.name}</h1>
+          <h1 className="font-heading text-[18px] font-semibold">Book at {state.settings.name}</h1>
           {step > 1 && step < 5 && (
             <button onClick={() => setStep((s) => (s - 1) as Step)} className="flex items-center gap-1 text-[13px] text-[#6b7280] hover:text-[#2c2f2e]">
               <ChevronLeft className="size-4" /> Back

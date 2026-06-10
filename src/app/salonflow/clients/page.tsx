@@ -35,7 +35,7 @@ export default function ClientsPage() {
     <div className="flex h-full">
       <div className="flex min-w-0 flex-1 flex-col bg-white">
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#e6e7e7] px-5">
-          <h1 className="text-[18px] font-semibold">Clients <span className="text-[#9fa5a4]">({state.clients.length})</span></h1>
+          <h1 className="font-heading text-[18px] font-semibold">Clients <span className="text-[#9fa5a4]">({state.clients.length})</span></h1>
           {can("manageClients") && <button onClick={() => setAdding(true)} className="flex items-center gap-1.5 rounded-lg bg-[#1f2a4d] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[#28356180]"><UserPlus className="size-4" /> Add client</button>}
         </div>
         <div className="border-b border-[#eef0f2] px-5 py-3">

@@ -74,7 +74,7 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-6xl px-6 py-6">
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight text-[#2c2f2e]">Dashboard</h1>
+          <h1 className="font-heading text-[22px] font-semibold tracking-tight text-[#2c2f2e]">Dashboard</h1>
           <p className="text-[13px] text-[#9fa5a4]">{settings.name} · this week (Aug 13–19, 2025)</p>
         </div>
         <Link

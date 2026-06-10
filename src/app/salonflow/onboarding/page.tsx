@@ -134,7 +134,7 @@ export default function OnboardingPage() {
         {step === 5 && (
           <div className="py-4 text-center">
             <div className="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-[#dcefd8]"><Sparkles className="size-6 text-[#4F9A57]" /></div>
-            <h2 className="text-[20px] font-semibold">You&apos;re live, {name}! 🎉</h2>
+            <h2 className="font-heading text-[20px] font-semibold">You&apos;re live, {name}! 🎉</h2>
             <p className="mt-1 text-[13px] text-[#6b7280]">Setup took a couple of minutes. Share your booking link and start taking appointments.</p>
             <div className="mx-auto mt-4 flex max-w-sm items-center gap-2 rounded-lg border border-[#e6e7e7] bg-[#f8f9f9] px-3 py-2 text-[13px]">
               <span className="flex-1 truncate text-[#3f4544]">salonflow.app/{state.settings.name.toLowerCase().replace(/\s+/g, "")}</span>
@@ -160,7 +160,7 @@ export default function OnboardingPage() {
 function Wizard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
     <div>
-      <h2 className="text-[18px] font-semibold">{title}</h2>
+      <h2 className="font-heading text-[18px] font-semibold">{title}</h2>
       <p className="mb-5 mt-1 text-[13px] text-[#6b7280]">{subtitle}</p>
       {children}
     </div>
