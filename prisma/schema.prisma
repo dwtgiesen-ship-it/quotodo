@@ -332,3 +332,26 @@ model SyncLog {
   @@index([salonId, createdAt])
   @@index([connectionId, createdAt])
 }
+
+// ─── Authentication ──────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String   @default("")
+  passwordHash String
+  salonId      String   // the salon this user belongs to
+  role         String   @default("owner") // owner | manager | staff | receptionist
+  createdAt    DateTime @default(now())
+
+  @@index([salonId])
+}
+
+model Session {
+  id        String   @id // opaque random token (stored in the cookie)
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

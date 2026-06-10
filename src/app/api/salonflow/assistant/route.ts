@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { availability, getState } from "@/lib/salonflow/repo";
-import { DEMO_SALON_ID } from "@/lib/salonflow/constants";
+import { getSalonId } from "@/lib/salonflow/auth";
 import { DAYS, fmtRange, money, type SalonState } from "@/app/salonflow/lib/types";
 
 // Real Claude tool-using assistant. Activates only when ANTHROPIC_API_KEY is set;
@@ -53,7 +53,7 @@ async function runTool(name: string, input: any, state: SalonState): Promise<{ r
     case "list_inactive_clients":
       return { result: JSON.stringify(state.clients.filter((c) => c.tags.includes("Win-back")).map((c) => `${c.firstName} ${c.lastName}`)) };
     case "find_availability": {
-      const slots = await availability(DEMO_SALON_ID, input.serviceId, input.staffId, Number(input.day));
+      const slots = await availability((await getSalonId()), input.serviceId, input.staffId, Number(input.day));
       return { result: JSON.stringify({ slots }) };
     }
     case "propose_booking": {
@@ -62,7 +62,7 @@ async function runTool(name: string, input: any, state: SalonState): Promise<{ r
       const cl = state.clients.find((x) => x.id === input.clientId);
       if (!svc || !stf || !cl) return { result: "Error: unknown service, staff, or client id." };
       const day = Number(input.day); const start = Number(input.start);
-      const slots = await availability(DEMO_SALON_ID, input.serviceId, input.staffId, day);
+      const slots = await availability((await getSalonId()), input.serviceId, input.staffId, day);
       if (!slots.includes(Math.round(start * 4) / 4)) return { result: "That slot isn't free. Call find_availability and pick an open start time." };
       const label = `${svc.name} for ${cl.firstName} ${cl.lastName} with ${stf.name} · ${DAYS[day]?.label} ${DAYS[day]?.date}, ${fmtRange(start, start).split(" - ")[0]} · ${money(svc.priceMinor, state.settings.currency)}`;
       return { result: "Proposal ready — shown to the user for confirmation.", proposal: { serviceId: input.serviceId, staffId: input.staffId, clientId: input.clientId, day, start, label } };
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ configured: false });
 
   const { messages } = (await req.json()) as { messages: { role: "user" | "assistant"; content: string }[] };
-  const state = await getState(DEMO_SALON_ID);
+  const state = await getState((await getSalonId()));
   const client = new Anthropic();
 
   const convo: Anthropic.MessageParam[] = messages.map((m) => ({ role: m.role, content: m.content }));

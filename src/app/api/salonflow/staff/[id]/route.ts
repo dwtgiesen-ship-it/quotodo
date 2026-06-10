@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { removeStaff } from "@/lib/salonflow/repo";
-import { DEMO_SALON_ID } from "@/lib/salonflow/constants";
+import { getSalonId } from "@/lib/salonflow/auth";
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await removeStaff(DEMO_SALON_ID, id);
+  await removeStaff((await getSalonId()), id);
   return NextResponse.json({ ok: true });
 }

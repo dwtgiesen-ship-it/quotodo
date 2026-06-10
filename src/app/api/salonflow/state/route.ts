@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getState } from "@/lib/salonflow/repo";
-import { DEMO_SALON_ID } from "@/lib/salonflow/constants";
+import { getSalonId } from "@/lib/salonflow/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const state = await getState(DEMO_SALON_ID);
+  const state = await getState((await getSalonId()));
   return NextResponse.json(state);
 }

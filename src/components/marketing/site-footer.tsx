@@ -6,10 +6,9 @@ const COLS: { title: string; links: { label: string; href: string }[] }[] = [
     links: [
       { label: "Why SalonFlow", href: "#why" },
       { label: "Pricing", href: "#pricing" },
-      { label: "Open the app", href: "/salonflow" },
       { label: "Take a tour", href: "/salonflow/dashboard" },
-      { label: "Start free", href: "/salonflow/onboarding" },
-      { label: "Log in", href: "/salonflow" },
+      { label: "Start free", href: "/salonflow/signup" },
+      { label: "Log in", href: "/salonflow/login" },
     ],
   },
   {

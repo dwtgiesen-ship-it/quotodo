@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { availability } from "@/lib/salonflow/repo";
-import { DEMO_SALON_ID } from "@/lib/salonflow/constants";
+import { getSalonId } from "@/lib/salonflow/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +12,6 @@ export async function GET(req: Request) {
   if (!serviceId || !staffId || Number.isNaN(day)) {
     return NextResponse.json({ error: "serviceId, staffId, day are required" }, { status: 400 });
   }
-  const slots = await availability(DEMO_SALON_ID, serviceId, staffId, day);
+  const slots = await availability((await getSalonId()), serviceId, staffId, day);
   return NextResponse.json({ slots });
 }

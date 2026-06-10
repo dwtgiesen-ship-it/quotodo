@@ -123,7 +123,7 @@ export default function Home() {
               Booking, calendar, payments, clients and marketing — in one beautifully simple platform your whole team will love. Set up in 10 minutes and start taking bookings today.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/salonflow/onboarding" className="flex items-center gap-1.5 rounded-xl bg-[#1f2a4d] px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#28365f]">
+              <Link href="/salonflow/signup" className="flex items-center gap-1.5 rounded-xl bg-[#1f2a4d] px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#28365f]">
                 Start free <ArrowRight className="size-4" />
               </Link>
               <Link href="/salonflow/dashboard" className="rounded-xl border border-[#e6e7e7] bg-white px-6 py-3.5 text-[15px] font-semibold transition-colors hover:bg-[#f8f9fb]">
@@ -285,7 +285,7 @@ export default function Home() {
               <div className="mt-2 text-[34px] font-semibold">{p.price}<span className="text-[14px] font-normal text-[#9097a3]">/mo</span></div>
               <div className="text-[12px] text-[#9097a3]">{p.tag}</div>
               <ul className="mt-4 space-y-2 text-[14px] text-[#3f4658]">{p.features.map((f) => <li key={f} className="flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-[#4F9A57]" /> {f}</li>)}</ul>
-              <Link href="/salonflow/onboarding" className={`mt-5 block rounded-xl py-3 text-center text-[14px] font-semibold transition-colors ${p.highlight ? "bg-[#1f2a4d] text-white hover:bg-[#28365f]" : "border border-[#e6e7e7] hover:bg-[#f8f9fb]"}`}>{p.cta}</Link>
+              <Link href="/salonflow/signup" className={`mt-5 block rounded-xl py-3 text-center text-[14px] font-semibold transition-colors ${p.highlight ? "bg-[#1f2a4d] text-white hover:bg-[#28365f]" : "border border-[#e6e7e7] hover:bg-[#f8f9fb]"}`}>{p.cta}</Link>
             </div>
           ))}
         </div>
@@ -300,7 +300,7 @@ export default function Home() {
             <h2 className="mx-auto max-w-2xl text-[32px] font-heading font-semibold tracking-tight [text-wrap:balance] md:text-[42px]">Switch to SalonFlow with zero downtime</h2>
             <p className="mx-auto mt-3 max-w-md text-[16px] text-white/70">Set up in 10 minutes, keep your calendar in sync, and take your first booking today.</p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <Link href="/salonflow/onboarding" className="flex items-center gap-1.5 rounded-xl bg-white px-6 py-3.5 text-[15px] font-semibold text-[#1f2a4d] hover:bg-white/90">Start free <ArrowRight className="size-4" /></Link>
+              <Link href="/salonflow/signup" className="flex items-center gap-1.5 rounded-xl bg-white px-6 py-3.5 text-[15px] font-semibold text-[#1f2a4d] hover:bg-white/90">Start free <ArrowRight className="size-4" /></Link>
               <Link href="/salonflow/dashboard" className="rounded-xl border border-white/25 px-6 py-3.5 text-[15px] font-semibold text-white hover:bg-white/10">Explore the demo</Link>
             </div>
           </div>

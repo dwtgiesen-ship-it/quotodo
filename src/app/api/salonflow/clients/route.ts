@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { addClient } from "@/lib/salonflow/repo";
-import { DEMO_SALON_ID } from "@/lib/salonflow/constants";
+import { getSalonId } from "@/lib/salonflow/auth";
 import type { Client } from "@/app/salonflow/lib/types";
 
 export async function POST(req: Request) {
@@ -8,6 +8,6 @@ export async function POST(req: Request) {
   if (!body.firstName) {
     return NextResponse.json({ error: "firstName is required" }, { status: 400 });
   }
-  const client = await addClient(DEMO_SALON_ID, body as Partial<Client> & { firstName: string });
+  const client = await addClient((await getSalonId()), body as Partial<Client> & { firstName: string });
   return NextResponse.json(client, { status: 201 });
 }
