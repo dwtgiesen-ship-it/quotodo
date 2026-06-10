@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { LogOut } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useSalon } from "../lib/store";
 import { useRole } from "./role";
 
@@ -44,11 +45,11 @@ export function TopNav() {
   });
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between bg-[#1f2a4d] px-4 text-white/90">
+    <header className="flex h-14 shrink-0 items-center justify-between bg-sf-navy px-4 text-white/90">
       <div className="flex min-w-0 items-center gap-1">
         <Link href="/salonflow/dashboard" className="mr-2 flex items-center gap-2">
           <Logo className="size-8" />
-          <span className="hidden font-heading text-[16px] font-bold text-white lg:inline">Schedulemode</span>
+          <span className="hidden font-heading text-[16px] text-white lg:inline"><span className="font-bold">Schedule</span><span className="font-medium text-white/70">mode</span></span>
         </Link>
         <nav className="flex min-w-0 items-center overflow-x-auto">
           {visible.map(({ href, label, icon: Icon }) => {
@@ -66,6 +67,7 @@ export function TopNav() {
         <Link href="/salonflow/book" className="hidden items-center gap-1.5 rounded-md bg-white/10 px-3 py-1.5 text-[13px] font-medium text-white hover:bg-white/20 sm:flex">
           <LayoutGrid className="size-4" strokeWidth={1.75} /> Booking page
         </Link>
+        <ThemeToggle onDark />
         {can("settings") && (
           <Link href="/salonflow/settings" className={`grid size-8 place-items-center rounded-md ${pathname.startsWith("/salonflow/settings") ? "bg-white/10 text-white" : "text-white/70 hover:text-white"}`}>
             <Settings className="size-[18px]" strokeWidth={1.75} />

@@ -35,34 +35,34 @@ export default function AcceptInvitePage({ params }: { params: Promise<{ token: 
   }
 
   return (
-    <div className="grid min-h-full place-items-center bg-[#fafbfc] px-4 py-10">
+    <div className="grid min-h-full place-items-center bg-sf-bg2 px-4 py-10">
       <div className="w-full max-w-sm">
         <Link href="/" className="mb-6 flex items-center justify-center gap-2">
           <Logo className="size-9" />
-          <span className="font-heading text-[20px] font-bold tracking-tight text-[#1f2a4d]">Schedulemode</span>
+          <span className="font-heading text-[20px] font-bold tracking-tight text-sf-ink">Schedulemode</span>
         </Link>
-        <div className="rounded-2xl border border-[#eef0f2] bg-white p-7 shadow-sm">
+        <div className="rounded-2xl border border-sf-line bg-sf-card p-7 shadow-sm">
           {invite === null ? (
-            <div className="grid place-items-center py-8"><Loader2 className="size-6 animate-spin text-[#9097a3]" /></div>
+            <div className="grid place-items-center py-8"><Loader2 className="size-6 animate-spin text-sf-muted" /></div>
           ) : !invite.valid ? (
             <>
-              <h1 className="font-heading text-[20px] font-semibold text-[#1f2a4d]">Invitation not valid</h1>
-              <p className="mt-1 text-[14px] text-[#5b6472]">This invite link has expired or was already used. Ask the salon owner to send a new one.</p>
-              <Link href="/salonflow/login" className="mt-5 inline-block rounded-xl bg-[#1f2a4d] px-4 py-2.5 text-[14px] font-semibold text-white">Go to login</Link>
+              <h1 className="font-heading text-[20px] font-semibold text-sf-ink">Invitation not valid</h1>
+              <p className="mt-1 text-[14px] text-sf-ink2">This invite link has expired or was already used. Ask the salon owner to send a new one.</p>
+              <Link href="/salonflow/login" className="mt-5 inline-block rounded-xl bg-sf-navy px-4 py-2.5 text-[14px] font-semibold text-white">Go to login</Link>
             </>
           ) : (
             <>
-              <h1 className="font-heading text-[22px] font-semibold tracking-tight text-[#1f2a4d]">Join {invite.salonName}</h1>
-              <p className="mt-1 text-[14px] text-[#5b6472]">You&apos;ve been invited as <span className="font-medium capitalize text-[#1f2a4d]">{invite.role}</span>. Set a password to get started.</p>
+              <h1 className="font-heading text-[22px] font-semibold tracking-tight text-sf-ink">Join {invite.salonName}</h1>
+              <p className="mt-1 text-[14px] text-sf-ink2">You&apos;ve been invited as <span className="font-medium capitalize text-sf-ink">{invite.role}</span>. Set a password to get started.</p>
               <form onSubmit={submit} className="mt-6 space-y-3.5">
                 <Field label="Your name" type="text" value={name} onChange={setName} autoFocus placeholder="Your full name" />
                 <div>
-                  <span className="mb-1.5 block text-[13px] font-medium text-[#3f4658]">Email</span>
-                  <div className="rounded-xl border border-[#eef0f2] bg-[#f6f7f9] px-3.5 py-2.5 text-[14px] text-[#6b7280]">{invite.email}</div>
+                  <span className="mb-1.5 block text-[13px] font-medium text-sf-ink2">Email</span>
+                  <div className="rounded-xl border border-sf-line bg-sf-soft px-3.5 py-2.5 text-[14px] text-sf-ink2">{invite.email}</div>
                 </div>
                 <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="At least 8 characters" />
                 {error && <p className="rounded-lg bg-[#fdf0f2] px-3 py-2 text-[13px] text-[#d06277]">{error}</p>}
-                <button disabled={busy || password.length < 8} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#1f2a4d] py-3 text-[15px] font-semibold text-white transition-colors hover:bg-[#28365f] disabled:opacity-50">
+                <button disabled={busy || password.length < 8} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-sf-navy py-3 text-[15px] font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50">
                   {busy ? <Loader2 className="size-4 animate-spin" /> : <>Join the team <ArrowRight className="size-4" /></>}
                 </button>
               </form>
@@ -77,8 +77,8 @@ export default function AcceptInvitePage({ params }: { params: Promise<{ token: 
 function Field({ label, type, value, onChange, placeholder, autoFocus }: { label: string; type: string; value: string; onChange: (v: string) => void; placeholder?: string; autoFocus?: boolean }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[13px] font-medium text-[#3f4658]">{label}</span>
-      <input type={type} value={value} autoFocus={autoFocus} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="w-full rounded-xl border border-[#e6e7e7] px-3.5 py-2.5 text-[14px] outline-none transition focus:border-[#9a7bd6] focus:ring-2 focus:ring-[#ece0f8]" />
+      <span className="mb-1.5 block text-[13px] font-medium text-sf-ink2">{label}</span>
+      <input type={type} value={value} autoFocus={autoFocus} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="w-full rounded-xl border border-sf-line px-3.5 py-2.5 text-[14px] outline-none transition focus:border-[#9a7bd6] focus:ring-2 focus:ring-[#ece0f8]" />
     </label>
   );
 }

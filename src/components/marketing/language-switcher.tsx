@@ -13,15 +13,15 @@ export function LanguageSwitcher({ dark = false }: { dark?: boolean }) {
   }
 
   return (
-    <div className={`flex items-center rounded-lg p-0.5 text-[12px] font-semibold ${dark ? "bg-white/10" : "bg-[#f0f1f4]"}`}>
+    <div className={`flex items-center rounded-lg p-0.5 text-[12px] font-semibold ${dark ? "bg-white/10" : "bg-sf-soft"}`}>
       {LOCALES.map((l) => (
         <button
           key={l.id}
           onClick={() => set(l.id)}
           className={`rounded-md px-2 py-1 transition-colors ${
             current === l.id
-              ? dark ? "bg-white text-[#1f2a4d]" : "bg-white text-[#1f2a4d] shadow-sm"
-              : dark ? "text-white/70 hover:text-white" : "text-[#6b7280] hover:text-[#1f2a4d]"
+              ? dark ? "bg-white text-sf-navy" : "bg-sf-card text-sf-ink shadow-sm"
+              : dark ? "text-white/70 hover:text-white" : "text-sf-ink2 hover:text-sf-ink"
           }`}
         >
           {l.label}

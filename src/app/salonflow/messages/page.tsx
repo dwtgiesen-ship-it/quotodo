@@ -37,12 +37,12 @@ export default function MessagesPage() {
     <div className="mx-auto max-w-4xl px-6 py-6">
       <div className="mb-4">
         <h1 className="font-heading text-[22px] font-semibold tracking-tight">Messages</h1>
-        <p className="text-[13px] text-[#9fa5a4]">Automated SMS, email &amp; WhatsApp lifecycle campaigns</p>
+        <p className="text-[13px] text-sf-muted">Automated SMS, email &amp; WhatsApp lifecycle campaigns</p>
       </div>
 
-      <div className="mb-4 flex items-center gap-1 rounded-lg bg-[#f0f1f1] p-0.5 text-[13px] font-medium">
+      <div className="mb-4 flex items-center gap-1 rounded-lg bg-sf-soft p-0.5 text-[13px] font-medium">
         {(["automations", "log"] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`rounded-md px-4 py-1.5 capitalize ${tab === t ? "bg-white shadow-sm" : "text-[#6b7280]"}`}>{t === "log" ? "Message log" : "Automations"}</button>
+          <button key={t} onClick={() => setTab(t)} className={`rounded-md px-4 py-1.5 capitalize ${tab === t ? "bg-sf-card shadow-sm" : "text-sf-ink2"}`}>{t === "log" ? "Message log" : "Automations"}</button>
         ))}
       </div>
 
@@ -51,22 +51,22 @@ export default function MessagesPage() {
           {state.campaigns.map((c) => {
             const Icon = channelIcon(c.channel);
             return (
-              <div key={c.id} className="rounded-xl border border-[#e6e7e7] bg-white p-4">
+              <div key={c.id} className="rounded-xl border border-sf-line bg-sf-card p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <Icon className="size-4 text-[#5777B0]" />
                       <span className="text-[14px] font-semibold">{CAMPAIGN_LABEL[c.type]}</span>
-                      <span className="rounded-full bg-[#f0f1f1] px-2 py-0.5 text-[11px] font-medium uppercase text-[#6b7280]">{c.channel}</span>
-                      <span className="text-[11px] text-[#9fa5a4]">· {triggerLabel(c.triggerOffsetMin)}</span>
+                      <span className="rounded-full bg-sf-soft px-2 py-0.5 text-[11px] font-medium uppercase text-sf-ink2">{c.channel}</span>
+                      <span className="text-[11px] text-sf-muted">· {triggerLabel(c.triggerOffsetMin)}</span>
                     </div>
-                    <p className="mt-1.5 line-clamp-2 text-[13px] text-[#6b7280]">{c.template}</p>
+                    <p className="mt-1.5 line-clamp-2 text-[13px] text-sf-ink2">{c.template}</p>
                   </div>
                   <button
                     onClick={() => { toggleCampaign(c.id, !c.active); toast.success(`${CAMPAIGN_LABEL[c.type]} ${!c.active ? "enabled" : "disabled"}`); }}
                     className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${c.active ? "bg-[#4F9A57]" : "bg-[#d6d8d8]"}`}
                   >
-                    <span className={`absolute top-0.5 size-5 rounded-full bg-white transition-all ${c.active ? "left-[22px]" : "left-0.5"}`} />
+                    <span className={`absolute top-0.5 size-5 rounded-full bg-sf-card transition-all ${c.active ? "left-[22px]" : "left-0.5"}`} />
                   </button>
                 </div>
               </div>
@@ -74,19 +74,19 @@ export default function MessagesPage() {
           })}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-[#e6e7e7] bg-white">
-          {state.messages.length === 0 && <p className="px-4 py-6 text-center text-[13px] text-[#9fa5a4]">No messages sent yet.</p>}
+        <div className="overflow-hidden rounded-xl border border-sf-line bg-sf-card">
+          {state.messages.length === 0 && <p className="px-4 py-6 text-center text-[13px] text-sf-muted">No messages sent yet.</p>}
           {state.messages.map((m) => {
             const client = clientById(m.clientId);
             const Icon = channelIcon(m.channel);
             return (
-              <div key={m.id} className="flex items-start gap-3 border-b border-[#f0f1f1] px-4 py-3 last:border-0">
-                <Icon className="mt-0.5 size-4 shrink-0 text-[#9fa5a4]" />
+              <div key={m.id} className="flex items-start gap-3 border-b border-sf-line px-4 py-3 last:border-0">
+                <Icon className="mt-0.5 size-4 shrink-0 text-sf-muted" />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 text-[13px]"><span className="font-medium">{client?.firstName} {client?.lastName}</span><span className="text-[#9fa5a4]">· {m.createdAt}</span></div>
-                  <p className="truncate text-[13px] text-[#6b7280]">{m.body}</p>
+                  <div className="flex items-center gap-2 text-[13px]"><span className="font-medium">{client?.firstName} {client?.lastName}</span><span className="text-sf-muted">· {m.createdAt}</span></div>
+                  <p className="truncate text-[13px] text-sf-ink2">{m.body}</p>
                 </div>
-                <span className={`shrink-0 text-[11px] font-medium capitalize ${m.status === "read" || m.status === "delivered" ? "text-[#4F9A57]" : "text-[#9fa5a4]"}`}>{m.status}</span>
+                <span className={`shrink-0 text-[11px] font-medium capitalize ${m.status === "read" || m.status === "delivered" ? "text-[#4F9A57]" : "text-sf-muted"}`}>{m.status}</span>
               </div>
             );
           })}
@@ -106,13 +106,13 @@ function Composer({ clients, onSend }: { clients: { id: string; name: string }[]
   const [channel, setChannel] = useState<Channel>("sms");
   const [body, setBody] = useState("");
   return (
-    <div className="mt-5 rounded-xl border border-[#e6e7e7] bg-white p-4">
+    <div className="mt-5 rounded-xl border border-sf-line bg-sf-card p-4">
       <div className="mb-2 text-[13px] font-semibold">Send a one-off message</div>
       <div className="flex flex-wrap gap-2">
-        <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px]"><option value="">Client…</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-        <select value={channel} onChange={(e) => setChannel(e.target.value as Channel)} className="rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px]"><option value="sms">SMS</option><option value="email">Email</option><option value="whatsapp">WhatsApp</option></select>
-        <input value={body} onChange={(e) => setBody(e.target.value)} placeholder="Message…" className="min-w-[200px] flex-1 rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-[#dfe1e1]" />
-        <button disabled={!clientId || !body} onClick={() => { onSend(clientId, channel, body); setBody(""); }} className="flex items-center gap-1.5 rounded-lg bg-[#1f2a4d] px-3 py-2 text-[13px] font-medium text-white disabled:opacity-40"><Send className="size-4" /> Send</button>
+        <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="rounded-lg border border-sf-line px-3 py-2 text-[13px]"><option value="">Client…</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+        <select value={channel} onChange={(e) => setChannel(e.target.value as Channel)} className="rounded-lg border border-sf-line px-3 py-2 text-[13px]"><option value="sms">SMS</option><option value="email">Email</option><option value="whatsapp">WhatsApp</option></select>
+        <input value={body} onChange={(e) => setBody(e.target.value)} placeholder="Message…" className="min-w-[200px] flex-1 rounded-lg border border-sf-line px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-[#dfe1e1]" />
+        <button disabled={!clientId || !body} onClick={() => { onSend(clientId, channel, body); setBody(""); }} className="flex items-center gap-1.5 rounded-lg bg-sf-navy px-3 py-2 text-[13px] font-medium text-white disabled:opacity-40"><Send className="size-4" /> Send</button>
       </div>
     </div>
   );

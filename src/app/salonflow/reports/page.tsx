@@ -72,9 +72,9 @@ export default function ReportsPage() {
       <div className="mb-5 flex items-center justify-between">
         <div>
           <h1 className="font-heading text-[22px] font-semibold tracking-tight">Reports</h1>
-          <p className="text-[13px] text-[#9fa5a4]">This week · {state.settings.name}</p>
+          <p className="text-[13px] text-sf-muted">This week · {state.settings.name}</p>
         </div>
-        <button onClick={exportCsv} className="flex items-center gap-1.5 rounded-lg border border-[#e6e7e7] bg-white px-3.5 py-2 text-[13px] font-medium hover:bg-[#f4f5f4]"><Download className="size-4" /> Export CSV</button>
+        <button onClick={exportCsv} className="flex items-center gap-1.5 rounded-lg border border-sf-line bg-sf-card px-3.5 py-2 text-[13px] font-medium hover:bg-sf-soft"><Download className="size-4" /> Export CSV</button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -91,9 +91,9 @@ export default function ReportsPage() {
           <div className="flex h-44 items-end gap-2 pt-2">
             {m.perDay.map((d) => (
               <div key={d.label} className="flex flex-1 flex-col items-center justify-end gap-1.5">
-                <span className="text-[11px] font-medium text-[#6b7280]">{d.value ? money(d.value) : ""}</span>
+                <span className="text-[11px] font-medium text-sf-ink2">{d.value ? money(d.value) : ""}</span>
                 <div className="w-full rounded-t-md bg-[#5777B0]" style={{ height: Math.max(d.value ? 6 : 2, Math.round((d.value / maxDay) * 130)), opacity: d.value ? 1 : 0.25 }} />
-                <span className="text-[11px] text-[#9fa5a4]">{d.label}</span>
+                <span className="text-[11px] text-sf-muted">{d.label}</span>
               </div>
             ))}
           </div>
@@ -104,8 +104,8 @@ export default function ReportsPage() {
             {m.topServices.map(({ service, rev, count }) => (
               <div key={service!.id} className="flex items-center gap-3">
                 <span className="w-32 shrink-0 truncate text-[13px]">{service!.name}</span>
-                <div className="h-5 flex-1 overflow-hidden rounded bg-[#f0f1f1]"><div className="h-full rounded" style={{ width: `${(rev / maxSvc) * 100}%`, backgroundColor: CATEGORY_STYLES[service!.category].accent }} /></div>
-                <span className="w-20 text-right text-[12px] font-medium text-[#6b7280]">{money(rev, state.settings.currency)} ({count})</span>
+                <div className="h-5 flex-1 overflow-hidden rounded bg-sf-soft"><div className="h-full rounded" style={{ width: `${(rev / maxSvc) * 100}%`, backgroundColor: CATEGORY_STYLES[service!.category].accent }} /></div>
+                <span className="w-20 text-right text-[12px] font-medium text-sf-ink2">{money(rev, state.settings.currency)} ({count})</span>
               </div>
             ))}
           </div>
@@ -114,9 +114,9 @@ export default function ReportsPage() {
         <Card title="Staff performance">
           <table className="w-full text-[13px]"><tbody>
             {m.staffPerf.map(({ staff, count, rev }) => (
-              <tr key={staff.id} className="border-b border-[#f0f1f1] last:border-0">
+              <tr key={staff.id} className="border-b border-sf-line last:border-0">
                 <td className="py-2"><div className="flex items-center gap-2"><span className="grid size-7 place-items-center rounded-full text-[11px] font-semibold text-white" style={{ backgroundColor: staff.color }}>{staff.initials}</span>{staff.name}</div></td>
-                <td className="py-2 text-right text-[#6b7280]">{count} appts</td>
+                <td className="py-2 text-right text-sf-ink2">{count} appts</td>
                 <td className="py-2 text-right font-medium">{money(rev, state.settings.currency)}</td>
               </tr>
             ))}
@@ -130,8 +130,8 @@ export default function ReportsPage() {
               return (
                 <div key={label} className="flex items-center gap-3">
                   <span className="w-24 shrink-0 text-[13px]">{label}</span>
-                  <div className="h-5 flex-1 overflow-hidden rounded bg-[#f0f1f1]"><div className="h-full rounded" style={{ width: `${(n / total) * 100}%`, backgroundColor: color }} /></div>
-                  <span className="w-10 text-right text-[12px] font-medium text-[#6b7280]">{n}</span>
+                  <div className="h-5 flex-1 overflow-hidden rounded bg-sf-soft"><div className="h-full rounded" style={{ width: `${(n / total) * 100}%`, backgroundColor: color }} /></div>
+                  <span className="w-10 text-right text-[12px] font-medium text-sf-ink2">{n}</span>
                 </div>
               );
             })}
@@ -144,13 +144,13 @@ export default function ReportsPage() {
 
 function Kpi({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="rounded-xl border border-[#e6e7e7] bg-white p-3.5">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-[#9fa5a4]">{label}</div>
+    <div className="rounded-xl border border-sf-line bg-sf-card p-3.5">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-sf-muted">{label}</div>
       <div className="mt-1 text-[20px] font-semibold leading-tight">{value}</div>
-      <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[#6b7280]"><TrendingUp className="size-3" /> {sub}</div>
+      <div className="mt-0.5 flex items-center gap-1 text-[11px] text-sf-ink2"><TrendingUp className="size-3" /> {sub}</div>
     </div>
   );
 }
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div className="rounded-xl border border-[#e6e7e7] bg-white p-4"><div className="mb-1 text-[13px] font-semibold">{title}</div>{children}</div>;
+  return <div className="rounded-xl border border-sf-line bg-sf-card p-4"><div className="mb-1 text-[13px] font-semibold">{title}</div>{children}</div>;
 }

@@ -15,10 +15,10 @@ const GREEN = "#4F9A57", PURPLE = "#8B5FB8", RED = "#D06277", BLUE = "#5777B0", 
 /** Browser frame with a light chrome bar — wraps every product mockup. */
 export function Frame({ children, label = "app.schedulemode.com" }: { children: React.ReactNode; label?: string }) {
   return (
-    <div aria-hidden className="select-none overflow-hidden rounded-2xl border border-[#e6e7e7] bg-white shadow-[0_24px_70px_-30px_rgba(31,42,77,0.35)]">
-      <div className="flex items-center gap-1.5 border-b border-[#eef0f2] bg-[#f6f7f9] px-3 py-2">
-        <span className="size-2.5 rounded-full bg-[#dfe1e5]" /><span className="size-2.5 rounded-full bg-[#dfe1e5]" /><span className="size-2.5 rounded-full bg-[#dfe1e5]" />
-        <span className="ml-3 flex-1 truncate rounded-md border border-[#e6e7e7] bg-white px-2.5 py-0.5 text-[10px] text-[#9097a3]">{label}</span>
+    <div aria-hidden className="select-none overflow-hidden rounded-2xl border border-sf-line bg-sf-card shadow-[0_24px_70px_-30px_rgba(31,42,77,0.35)]">
+      <div className="flex items-center gap-1.5 border-b border-sf-line bg-sf-bg2 px-3 py-2">
+        <span className="size-2.5 rounded-full bg-sf-line" /><span className="size-2.5 rounded-full bg-sf-line" /><span className="size-2.5 rounded-full bg-sf-line" />
+        <span className="ml-3 flex-1 truncate rounded-md border border-sf-line bg-sf-card px-2.5 py-0.5 text-[10px] text-sf-muted">{label}</span>
       </div>
       {children}
     </div>
@@ -29,7 +29,7 @@ export function Frame({ children, label = "app.schedulemode.com" }: { children: 
 function AppChrome({ active }: { active: string }) {
   const items = ["Dashboard", "Calendar", "Clients", "Services", "Reports"];
   return (
-    <div className="flex items-center gap-2 bg-[#1f2a4d] px-3 py-2">
+    <div className="flex items-center gap-2 bg-sf-navy px-3 py-2">
       <Logo className="size-5" />
       <span className="font-heading text-[11px] font-bold text-white">Schedulemode</span>
       <div className="ml-2 hidden items-center gap-0.5 sm:flex">
@@ -44,18 +44,18 @@ function AppChrome({ active }: { active: string }) {
 
 function Kpi({ label, value, trend, good }: { label: string; value: string; trend: string; good?: boolean }) {
   return (
-    <div className="rounded-lg border border-[#e6e7e7] bg-white p-2.5">
-      <div className="text-[8.5px] font-medium uppercase tracking-wide text-[#9fa5a4]">{label}</div>
-      <div className="mt-0.5 text-[16px] font-semibold leading-tight text-[#2c2f2e]">{value}</div>
-      <div className={`mt-0.5 flex items-center gap-0.5 text-[9px] ${good ? "text-[#4F9A57]" : "text-[#6b7280]"}`}><TrendingUp className="size-2.5" /> {trend}</div>
+    <div className="rounded-lg border border-sf-line bg-sf-card p-2.5">
+      <div className="text-[8.5px] font-medium uppercase tracking-wide text-sf-muted">{label}</div>
+      <div className="mt-0.5 text-[16px] font-semibold leading-tight text-sf-ink">{value}</div>
+      <div className={`mt-0.5 flex items-center gap-0.5 text-[9px] ${good ? "text-[#4F9A57]" : "text-sf-ink2"}`}><TrendingUp className="size-2.5" /> {trend}</div>
     </div>
   );
 }
 
 function MiniCard({ title, children, accent }: { title: string; children: React.ReactNode; accent?: boolean }) {
   return (
-    <div className={`rounded-lg border bg-white p-2.5 ${accent ? "border-[#d8e0f0]" : "border-[#e6e7e7]"}`}>
-      <div className="mb-1.5 text-[10px] font-semibold text-[#2c2f2e]">{title}</div>
+    <div className={`rounded-lg border bg-sf-card p-2.5 ${accent ? "border-sf-accent/30" : "border-sf-line"}`}>
+      <div className="mb-1.5 text-[10px] font-semibold text-sf-ink">{title}</div>
       {children}
     </div>
   );
@@ -76,13 +76,13 @@ export function DashboardMock() {
   return (
     <Frame>
       <AppChrome active="Dashboard" />
-      <div className="bg-white p-3.5">
+      <div className="bg-sf-card p-3.5">
         <div className="mb-2.5 flex items-center justify-between">
           <div>
-            <div className="font-heading text-[14px] font-semibold text-[#2c2f2e]">Dashboard</div>
-            <div className="text-[9px] text-[#9fa5a4]">Pearly · this week (Aug 13–19, 2025)</div>
+            <div className="font-heading text-[14px] font-semibold text-sf-ink">Dashboard</div>
+            <div className="text-[9px] text-sf-muted">Pearly · this week (Aug 13–19, 2025)</div>
           </div>
-          <span className="flex items-center gap-1 rounded-md bg-[#1f2a4d] px-2 py-1 text-[9px] font-medium text-white"><Sparkles className="size-2.5" /> Ask the assistant</span>
+          <span className="flex items-center gap-1 rounded-md bg-sf-navy px-2 py-1 text-[9px] font-medium text-white"><Sparkles className="size-2.5" /> Ask the assistant</span>
         </div>
 
         <div className="grid grid-cols-4 gap-2">
@@ -97,9 +97,9 @@ export function DashboardMock() {
             <div className="flex h-[78px] items-end gap-1 pt-1">
               {REV.map((d) => (
                 <div key={d.d} className="flex flex-1 flex-col items-center justify-end gap-1">
-                  <span className="text-[7px] font-medium text-[#6b7280]">{d.v ? `€${d.v}` : ""}</span>
+                  <span className="text-[7px] font-medium text-sf-ink2">{d.v ? `€${d.v}` : ""}</span>
                   <div className="w-full rounded-t bg-[#5777B0]" style={{ height: Math.max(d.v ? 4 : 2, Math.round((d.v / maxDay) * 56)), opacity: d.v ? 1 : 0.25 }} />
-                  <span className="text-[7px] text-[#9fa5a4]">{d.d}</span>
+                  <span className="text-[7px] text-sf-muted">{d.d}</span>
                 </div>
               ))}
             </div>
@@ -108,9 +108,9 @@ export function DashboardMock() {
             <div className="space-y-1.5 pt-0.5">
               {SERVICES.map((s) => (
                 <div key={s.name} className="flex items-center gap-1.5">
-                  <span className="w-[64px] shrink-0 truncate text-[8.5px] text-[#2c2f2e]">{s.name}</span>
-                  <div className="h-2.5 flex-1 overflow-hidden rounded bg-[#f0f1f1]"><div className="h-full rounded" style={{ width: `${(s.n / maxSvc) * 100}%`, backgroundColor: s.c }} /></div>
-                  <span className="w-3 text-right text-[8px] font-medium text-[#6b7280]">{s.n}</span>
+                  <span className="w-[64px] shrink-0 truncate text-[8.5px] text-sf-ink">{s.name}</span>
+                  <div className="h-2.5 flex-1 overflow-hidden rounded bg-sf-soft"><div className="h-full rounded" style={{ width: `${(s.n / maxSvc) * 100}%`, backgroundColor: s.c }} /></div>
+                  <span className="w-3 text-right text-[8px] font-medium text-sf-ink2">{s.n}</span>
                 </div>
               ))}
             </div>
@@ -119,9 +119,9 @@ export function DashboardMock() {
 
         <div className="mt-2">
           <MiniCard title="AI insights" accent>
-            <div className="flex items-start justify-between gap-2 rounded-md bg-[#f6f8fc] p-2">
-              <p className="text-[9px] leading-snug text-[#3f4544]">1 client hasn&apos;t booked in 60 days. Send a win-back offer?</p>
-              <span className="flex shrink-0 items-center gap-0.5 rounded bg-white px-1.5 py-0.5 text-[8.5px] font-medium text-[#5777B0] shadow-sm">Run win-back <ArrowUpRight className="size-2.5" /></span>
+            <div className="flex items-start justify-between gap-2 rounded-md bg-sf-soft p-2">
+              <p className="text-[9px] leading-snug text-sf-ink2">1 client hasn&apos;t booked in 60 days. Send a win-back offer?</p>
+              <span className="flex shrink-0 items-center gap-0.5 rounded bg-sf-card px-1.5 py-0.5 text-[8.5px] font-medium text-[#5777B0] shadow-sm">Run win-back <ArrowUpRight className="size-2.5" /></span>
             </div>
           </MiniCard>
         </div>
@@ -143,26 +143,26 @@ export function CalendarMock() {
   return (
     <Frame>
       <AppChrome active="Calendar" />
-      <div className="bg-white p-3">
+      <div className="bg-sf-card p-3">
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <span className="rounded-full border border-[#e1e2e2] px-2.5 py-1 text-[9px] font-semibold">TODAY</span>
-            <span className="font-heading text-[12px] font-semibold text-[#2c2f2e]">Aug 13–19</span>
+            <span className="rounded-full border border-sf-line px-2.5 py-1 text-[9px] font-semibold">TODAY</span>
+            <span className="font-heading text-[12px] font-semibold text-sf-ink">Aug 13–19</span>
           </div>
-          <div className="flex items-center rounded-md bg-[#f0f1f1] p-0.5 text-[9px] font-medium">
-            <span className="rounded bg-[#2c2f2e] px-2.5 py-1 text-white">Week</span>
-            <span className="px-2.5 py-1 text-[#6b7280]">Day</span>
+          <div className="flex items-center rounded-md bg-sf-soft p-0.5 text-[9px] font-medium">
+            <span className="rounded bg-sf-navy px-2.5 py-1 text-white">Week</span>
+            <span className="px-2.5 py-1 text-sf-ink2">Day</span>
           </div>
         </div>
         <div className="grid grid-cols-[20px_repeat(6,1fr)] gap-1">
           <div />
-          {CAL_DAYS.map((d) => <div key={d} className="pb-1 text-center text-[8.5px] font-medium text-[#6b7280]">{d}</div>)}
+          {CAL_DAYS.map((d) => <div key={d} className="pb-1 text-center text-[8.5px] font-medium text-sf-ink2">{d}</div>)}
           <div className="flex flex-col justify-between pr-1 text-right text-[7px] text-[#c2c6c5]">
             <span>9</span><span>11</span><span>13</span><span>15</span>
           </div>
           {CAL_DAYS.map((_, di) => (
-            <div key={di} className="relative h-[88px] rounded border border-[#f0f1f1] bg-[#fcfcfd]">
-              {[22, 44, 66].map((y) => <div key={y} className="absolute inset-x-0 border-t border-[#f0f1f1]" style={{ top: y }} />)}
+            <div key={di} className="relative h-[88px] rounded border border-sf-line bg-sf-bg2">
+              {[22, 44, 66].map((y) => <div key={y} className="absolute inset-x-0 border-t border-sf-line" style={{ top: y }} />)}
               {BLOCKS.filter((b) => b.day === di).map((b, i) => (
                 <div key={i} className="absolute inset-x-0.5 overflow-hidden rounded px-1 py-0.5 text-[7px] font-medium text-white" style={{ top: b.top, height: b.h, backgroundColor: b.c }}>{b.t}</div>
               ))}
@@ -180,24 +180,24 @@ const CLIENTS = [
   { i: "JR", n: "Jordan Reyes", e: "jordan@me.com", tier: "Gold", tc: "bg-[#fdf3d4] text-[#8a6d2f]", spend: "€880" },
   { i: "CB", n: "Cameron Brennan", e: "+31 6 1234", tier: "Silver", tc: "bg-[#e4e7ec] text-[#475467]", spend: "€420" },
   { i: "AP", n: "Andre Pearl", e: "andre@pearly.nl", tier: "Gold", tc: "bg-[#fdf3d4] text-[#8a6d2f]", spend: "€760" },
-  { i: "TS", n: "Tess Okoye", e: "tess@gmail.com", tier: "Standard", tc: "bg-[#f0f1f1] text-[#6b7280]", spend: "€150" },
+  { i: "TS", n: "Tess Okoye", e: "tess@gmail.com", tier: "Standard", tc: "bg-sf-soft text-sf-ink2", spend: "€150" },
 ];
 export function ClientsMock() {
   return (
     <Frame>
       <AppChrome active="Clients" />
-      <div className="bg-white">
-        <div className="flex items-center justify-between border-b border-[#e6e7e7] px-3.5 py-2.5">
-          <div className="font-heading text-[12px] font-semibold">Clients <span className="text-[#9fa5a4]">(248)</span></div>
-          <span className="rounded-md bg-[#1f2a4d] px-2.5 py-1 text-[9px] font-medium text-white">+ Add client</span>
+      <div className="bg-sf-card">
+        <div className="flex items-center justify-between border-b border-sf-line px-3.5 py-2.5">
+          <div className="font-heading text-[12px] font-semibold">Clients <span className="text-sf-muted">(248)</span></div>
+          <span className="rounded-md bg-sf-navy px-2.5 py-1 text-[9px] font-medium text-white">+ Add client</span>
         </div>
-        <div className="border-b border-[#eef0f2] px-3.5 py-2">
-          <div className="flex items-center gap-1.5 rounded-md bg-[#f4f5f4] px-2.5 py-1.5 text-[9px] text-[#9fa5a4]"><Search className="size-3" /> Search clients…</div>
+        <div className="border-b border-sf-line px-3.5 py-2">
+          <div className="flex items-center gap-1.5 rounded-md bg-sf-soft px-2.5 py-1.5 text-[9px] text-sf-muted"><Search className="size-3" /> Search clients…</div>
         </div>
         {CLIENTS.map((c) => (
-          <div key={c.i} className="flex items-center gap-2.5 border-b border-[#f0f1f1] px-3.5 py-2">
+          <div key={c.i} className="flex items-center gap-2.5 border-b border-sf-line px-3.5 py-2">
             <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#cfe4e2] text-[9px] font-semibold text-[#3f968c]">{c.i}</span>
-            <div className="min-w-0 flex-1"><div className="truncate text-[10px] font-medium text-[#2c2f2e]">{c.n}</div><div className="truncate text-[8.5px] text-[#9fa5a4]">{c.e}</div></div>
+            <div className="min-w-0 flex-1"><div className="truncate text-[10px] font-medium text-sf-ink">{c.n}</div><div className="truncate text-[8.5px] text-sf-muted">{c.e}</div></div>
             <span className={`rounded-full px-1.5 py-0.5 text-[8px] font-medium ${c.tc}`}>{c.tier}</span>
             <span className="w-12 text-right text-[9.5px] font-medium">{c.spend}</span>
           </div>
@@ -217,23 +217,23 @@ export function SyncMock() {
   return (
     <Frame>
       <AppChrome active="Calendar" />
-      <div className="bg-white p-3.5">
+      <div className="bg-sf-card p-3.5">
         <div className="mb-1 flex items-center gap-1.5">
           <CalendarSync className="size-3.5 text-[#7b4fae]" />
-          <div className="font-heading text-[12px] font-semibold text-[#2c2f2e]">Calendar sync</div>
+          <div className="font-heading text-[12px] font-semibold text-sf-ink">Calendar sync</div>
         </div>
-        <p className="mb-2.5 text-[9px] text-[#9fa5a4]">Two-way sync keeps every personal calendar and Schedulemode in lockstep — no double-bookings.</p>
+        <p className="mb-2.5 text-[9px] text-sf-muted">Two-way sync keeps every personal calendar and Schedulemode in lockstep — no double-bookings.</p>
         <div className="space-y-2">
           {CONNS.map((c) => (
-            <div key={c.p} className="flex items-center gap-2.5 rounded-lg border border-[#e6e7e7] bg-white p-2.5">
-              <span className="grid size-7 shrink-0 place-items-center rounded-md bg-[#f4f5f7] text-[9px] font-bold text-[#5b6472]">{c.p[0]}</span>
-              <div className="min-w-0 flex-1"><div className="truncate text-[10px] font-medium text-[#2c2f2e]">{c.p}</div><div className="truncate text-[8.5px] text-[#9fa5a4]">{c.who}</div></div>
+            <div key={c.p} className="flex items-center gap-2.5 rounded-lg border border-sf-line bg-sf-card p-2.5">
+              <span className="grid size-7 shrink-0 place-items-center rounded-md bg-sf-soft text-[9px] font-bold text-sf-ink2">{c.p[0]}</span>
+              <div className="min-w-0 flex-1"><div className="truncate text-[10px] font-medium text-sf-ink">{c.p}</div><div className="truncate text-[8.5px] text-sf-muted">{c.who}</div></div>
               <span className="flex items-center gap-1 text-[8px] text-[#4F9A57]"><CalendarSync className="size-2.5" /> two-way</span>
               <span className={`rounded-full px-1.5 py-0.5 text-[8px] font-medium ${c.sc}`}>{c.st}</span>
             </div>
           ))}
         </div>
-        <div className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-[#f6f8fc] px-2.5 py-2 text-[9px] text-[#3f4544]"><Check className="size-3 text-[#4F9A57]" /> Last sync 30s ago · 142 events mirrored this week</div>
+        <div className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-sf-soft px-2.5 py-2 text-[9px] text-sf-ink2"><Check className="size-3 text-[#4F9A57]" /> Last sync 30s ago · 142 events mirrored this week</div>
       </div>
     </Frame>
   );
@@ -249,13 +249,13 @@ export function ReportsMock() {
   return (
     <Frame>
       <AppChrome active="Reports" />
-      <div className="bg-white p-3.5">
+      <div className="bg-sf-card p-3.5">
         <div className="mb-2.5 flex items-center justify-between">
           <div>
-            <div className="font-heading text-[14px] font-semibold text-[#2c2f2e]">Reports</div>
-            <div className="text-[9px] text-[#9fa5a4]">This week · Pearly</div>
+            <div className="font-heading text-[14px] font-semibold text-sf-ink">Reports</div>
+            <div className="text-[9px] text-sf-muted">This week · Pearly</div>
           </div>
-          <span className="rounded-md border border-[#e6e7e7] bg-white px-2.5 py-1 text-[9px] font-medium text-[#5b6472]">Export CSV</span>
+          <span className="rounded-md border border-sf-line bg-sf-card px-2.5 py-1 text-[9px] font-medium text-sf-ink2">Export CSV</span>
         </div>
         <div className="grid grid-cols-4 gap-2">
           <Kpi label="Revenue" value="€1805" trend="+12%" />
@@ -268,9 +268,9 @@ export function ReportsMock() {
             <div className="flex h-[78px] items-end gap-1 pt-1">
               {REV.map((d) => (
                 <div key={d.d} className="flex flex-1 flex-col items-center justify-end gap-1">
-                  <span className="text-[7px] font-medium text-[#6b7280]">{d.v ? `€${d.v}` : ""}</span>
+                  <span className="text-[7px] font-medium text-sf-ink2">{d.v ? `€${d.v}` : ""}</span>
                   <div className="w-full rounded-t bg-[#5777B0]" style={{ height: Math.max(d.v ? 4 : 2, Math.round((d.v / maxDay) * 56)), opacity: d.v ? 1 : 0.25 }} />
-                  <span className="text-[7px] text-[#9fa5a4]">{d.d}</span>
+                  <span className="text-[7px] text-sf-muted">{d.d}</span>
                 </div>
               ))}
             </div>
@@ -279,9 +279,9 @@ export function ReportsMock() {
             <div className="space-y-1.5 pt-0.5">
               {REV_SVC.map((s) => (
                 <div key={s.name} className="flex items-center gap-1.5">
-                  <span className="w-[68px] shrink-0 truncate text-[8.5px] text-[#2c2f2e]">{s.name}</span>
-                  <div className="h-2.5 flex-1 overflow-hidden rounded bg-[#f0f1f1]"><div className="h-full rounded" style={{ width: `${(s.v / maxSvc) * 100}%`, backgroundColor: s.c }} /></div>
-                  <span className="w-9 text-right text-[8px] font-medium text-[#6b7280]">€{s.v}</span>
+                  <span className="w-[68px] shrink-0 truncate text-[8.5px] text-sf-ink">{s.name}</span>
+                  <div className="h-2.5 flex-1 overflow-hidden rounded bg-sf-soft"><div className="h-full rounded" style={{ width: `${(s.v / maxSvc) * 100}%`, backgroundColor: s.c }} /></div>
+                  <span className="w-9 text-right text-[8px] font-medium text-sf-ink2">€{s.v}</span>
                 </div>
               ))}
             </div>

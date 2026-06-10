@@ -93,7 +93,7 @@ export default function AssistantPage() {
       <div className="min-h-0 flex-1 space-y-3 overflow-auto pb-4">
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed ${m.role === "user" ? "bg-[#1f2a4d] text-white" : "border border-[#e6e7e7] bg-white text-[#2c2f2e]"}`}>
+            <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed ${m.role === "user" ? "bg-sf-navy text-white" : "border border-sf-line bg-sf-card text-sf-ink"}`}>
               {m.role === "assistant" && (
                 <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#8B5FB8]">
                   <Sparkles className="size-3.5" /> Assistant
@@ -101,11 +101,11 @@ export default function AssistantPage() {
               )}
               <p className="whitespace-pre-wrap">{m.text}</p>
               {m.proposal && !m.booked && (
-                <div className="mt-3 rounded-xl bg-[#f6f8fc] p-3">
-                  <div className="text-[13px] font-medium text-[#2c2f2e]">{m.proposal.label}</div>
+                <div className="mt-3 rounded-xl bg-sf-soft p-3">
+                  <div className="text-[13px] font-medium text-sf-ink">{m.proposal.label}</div>
                   <div className="mt-2 flex gap-2">
-                    <button onClick={() => confirmBooking(i, m.proposal!)} className="rounded-lg bg-[#1f2a4d] px-3 py-1.5 text-[12px] font-medium text-white">Confirm booking</button>
-                    <span className="self-center text-[11px] text-[#9fa5a4]">Nothing is booked until you confirm.</span>
+                    <button onClick={() => confirmBooking(i, m.proposal!)} className="rounded-lg bg-sf-navy px-3 py-1.5 text-[12px] font-medium text-white">Confirm booking</button>
+                    <span className="self-center text-[11px] text-sf-muted">Nothing is booked until you confirm.</span>
                   </div>
                 </div>
               )}
@@ -116,7 +116,7 @@ export default function AssistantPage() {
         ))}
         {busy && (
           <div className="flex justify-start">
-            <div className="rounded-2xl border border-[#e6e7e7] bg-white px-4 py-3">
+            <div className="rounded-2xl border border-sf-line bg-sf-card px-4 py-3">
               <div className="flex items-center gap-1">
                 {[0, 1, 2].map((i) => (
                   <span key={i} className="size-1.5 animate-bounce rounded-full bg-[#9fa5a4]" style={{ animationDelay: `${i * 120}ms` }} />
@@ -131,17 +131,17 @@ export default function AssistantPage() {
       <div className="shrink-0">
         <div className="mb-2 flex flex-wrap gap-1.5">
           {SUGGESTIONS.map((s) => (
-            <button key={s} onClick={() => send(s)} className="rounded-full border border-[#e6e7e7] bg-white px-3 py-1.5 text-[12px] text-[#6b7280] hover:bg-[#f8f9f9]">{s}</button>
+            <button key={s} onClick={() => send(s)} className="rounded-full border border-sf-line bg-sf-card px-3 py-1.5 text-[12px] text-sf-ink2 hover:bg-sf-soft">{s}</button>
           ))}
         </div>
         <form
           onSubmit={(e) => { e.preventDefault(); send(input); }}
-          className="flex items-center gap-2 rounded-xl border border-[#e6e7e7] bg-white p-1.5"
+          className="flex items-center gap-2 rounded-xl border border-sf-line bg-sf-card p-1.5"
         >
-          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask anything, or say “book …”" className="flex-1 bg-transparent px-3 py-1.5 text-[14px] outline-none placeholder:text-[#9fa5a4]" />
-          <button type="submit" className="grid size-9 place-items-center rounded-lg bg-[#1f2a4d] text-white"><Send className="size-4" /></button>
+          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask anything, or say “book …”" className="flex-1 bg-transparent px-3 py-1.5 text-[14px] outline-none placeholder:text-sf-muted" />
+          <button type="submit" className="grid size-9 place-items-center rounded-lg bg-sf-navy text-white"><Send className="size-4" /></button>
         </form>
-        <p className="mt-1.5 text-center text-[11px] text-[#9fa5a4]">Demo assistant (rule-based). Production swaps in a Claude tool-using agent — see docs/salonflow/06.</p>
+        <p className="mt-1.5 text-center text-[11px] text-sf-muted">Demo assistant (rule-based). Production swaps in a Claude tool-using agent — see docs/salonflow/06.</p>
       </div>
     </div>
   );

@@ -30,7 +30,7 @@ export async function SiteFooter() {
           <div>
             <Link href="/" className="flex items-center gap-2">
               <Logo className="size-8" />
-              <span className="font-heading text-[18px] font-bold text-white">Schedulemode</span>
+              <span className="font-heading text-[18px] text-white"><span className="font-bold">Schedule</span><span className="font-medium text-white/70">mode</span></span>
             </Link>
             <p className="mt-3 max-w-[220px] text-[13px] leading-relaxed text-white/55">{d.footer.tagline}</p>
             <div className="mt-4"><LanguageSwitcher dark /></div>
@@ -50,6 +50,7 @@ export async function SiteFooter() {
         </div>
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-[13px] text-white/45 sm:flex-row">
           <span>© {new Date().getFullYear()} Schedulemode. {d.footer.rights}</span>
+          <a href="mailto:info@schedulemode.com" className="transition-colors hover:text-white">info@schedulemode.com</a>
           <span>{d.footer.builtFor}</span>
         </div>
       </div>

@@ -13,7 +13,7 @@ export default function SchedulemodeLayout({ children }: { children: React.React
   return (
     <RoleProvider>
       <SalonProvider>
-        <div className="flex h-screen flex-col overflow-hidden bg-[#f4f5f4] text-[#2c2f2e]">
+        <div className="flex h-screen flex-col overflow-hidden bg-sf-bg2 text-sf-ink">
           <TopNav />
           <div className="min-h-0 flex-1 overflow-auto">{children}</div>
         </div>

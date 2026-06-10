@@ -46,6 +46,21 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Schedulemode brand tokens — auto-switch between light/dark via the vars below */
+  --color-sf-bg: var(--sf-bg);
+  --color-sf-bg2: var(--sf-bg2);
+  --color-sf-card: var(--sf-card);
+  --color-sf-line: var(--sf-line);
+  --color-sf-ink: var(--sf-ink);
+  --color-sf-ink2: var(--sf-ink2);
+  --color-sf-muted: var(--sf-muted);
+  --color-sf-soft: var(--sf-soft);
+  /* fixed brand palette (same in both themes) */
+  --color-sf-navy: #1f2b5c;
+  --color-sf-navy2: #4e5c8d;
+  --color-sf-accent: #9a6cff;
+  --color-sf-accent2: #d8a5ff;
 }
 
 :root {
@@ -81,6 +96,16 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* brand surfaces — light */
+  --sf-bg: #ffffff;
+  --sf-bg2: #f6f7fb;
+  --sf-card: #ffffff;
+  --sf-line: #e9eaf1;
+  --sf-ink: #1f2b5c;
+  --sf-ink2: #5b6478;
+  --sf-muted: #9097a3;
+  --sf-soft: #f3f1fb;
 }
 
 .dark {
@@ -115,6 +140,16 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* brand surfaces — premium dark (navy-black + glass) */
+  --sf-bg: #080b16;
+  --sf-bg2: #0c1120;
+  --sf-card: #111830;
+  --sf-line: rgba(255, 255, 255, 0.09);
+  --sf-ink: #f3f5fb;
+  --sf-ink2: #aeb6cc;
+  --sf-muted: #7b85a0;
+  --sf-soft: rgba(154, 108, 255, 0.12);
 }
 
 @layer base {
@@ -126,5 +161,35 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer components {
+  /* Signature accent button: purple→violet gradient pill with a soft glow. */
+  .btn-accent {
+    background-image: linear-gradient(135deg, #c79bf7 0%, #9a6cff 100%);
+    color: #fff;
+    box-shadow: 0 10px 26px -8px rgba(154, 108, 255, 0.55);
+    transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  .btn-accent:hover {
+    filter: brightness(1.06);
+    box-shadow: 0 12px 30px -8px rgba(154, 108, 255, 0.7);
+  }
+  .btn-accent:active {
+    transform: translateY(1px);
+  }
+  /* Gradient text for accents/eyebrows. */
+  .text-gradient {
+    background-image: linear-gradient(120deg, #b88af2, #9a6cff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Frosted glass surface for premium dark cards. */
+  .glass {
+    background: color-mix(in oklab, var(--sf-card) 82%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 }
