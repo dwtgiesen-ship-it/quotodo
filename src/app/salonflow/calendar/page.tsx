@@ -156,31 +156,66 @@ function Card({ appt, selected, onSelect, serviceName, clientName, category }: {
 
 function QuickBook({ day, start, onClose, onBooked }: { day: number; start: number; onClose: () => void; onBooked: (id: string) => void }) {
   const { state, book } = useSalon();
-  const [serviceId, setServiceId] = useState(state.services[0]?.id ?? "");
+  const [serviceIds, setServiceIds] = useState<string[]>(state.services[0] ? [state.services[0].id] : []);
   const [clientId, setClientId] = useState("");
-  const svc = state.services.find((s) => s.id === serviceId);
-  const eligibleStaff = state.staff.filter((m) => !serviceId || m.serviceIds.includes(serviceId));
-  const [staffId, setStaffId] = useState(eligibleStaff[0]?.id ?? state.staff[0]?.id ?? "");
+  const [addSel, setAddSel] = useState("");
+
+  const chosen = serviceIds.map((id) => state.services.find((s) => s.id === id)).filter(Boolean) as typeof state.services;
+  const totalMin = chosen.reduce((s, x) => s + x.durationMin, 0);
+  const totalPrice = chosen.reduce((s, x) => s + x.priceMinor, 0);
+  // staff who can perform every selected service
+  const eligibleStaff = state.staff.filter((m) => serviceIds.every((id) => m.serviceIds.includes(id)));
+  const [staffId, setStaffId] = useState(state.staff[0]?.id ?? "");
+  const staffOk = eligibleStaff.some((m) => m.id === staffId);
+
+  function remove(id: string) { setServiceIds((ids) => (ids.length > 1 ? ids.filter((x) => x !== id) : ids)); }
+  function add() { if (addSel && !serviceIds.includes(addSel)) setServiceIds((ids) => [...ids, addSel]); setAddSel(""); }
 
   function submit() {
-    if (!serviceId || !staffId || !clientId) return;
-    const res = book({ serviceId, staffId, clientId, day, start, source: "dashboard" });
-    if (res.ok) { toast.success("Appointment booked"); onBooked(res.appointment.id); }
-    else toast.error(res.reason);
+    if (!clientId || !staffId || serviceIds.length === 0) return;
+    let run = start;
+    let firstId = "";
+    for (const sId of serviceIds) {
+      const res = book({ serviceId: sId, staffId, clientId, day, start: run, source: "dashboard" });
+      if (!res.ok) { toast.error(res.reason); return; }
+      if (!firstId) firstId = res.appointment.id;
+      run = res.appointment.end;
+    }
+    toast.success(serviceIds.length > 1 ? `Booked ${serviceIds.length} services back-to-back` : "Appointment booked");
+    onBooked(firstId);
   }
+
+  const available = state.services.filter((s) => !serviceIds.includes(s.id));
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4" onClick={onClose}>
       <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between"><h3 className="text-[16px] font-semibold">New booking</h3><button onClick={onClose} className="text-[#9fa5a4]"><X className="size-4" /></button></div>
-        <p className="mb-3 text-[12px] text-[#9fa5a4]">{DAYS[day].label} {DAYS[day].date} · {fmtRange(start, start).split(" - ")[0]}{svc ? ` · ${svc.durationMin} min` : ""}</p>
+        <p className="mb-3 text-[12px] text-[#9fa5a4]">{DAYS[day].label} {DAYS[day].date} · {fmtRange(start, start).split(" - ")[0]}{totalMin ? ` · ${totalMin} min` : ""}</p>
         <label className="mb-1.5 block text-[12px] font-medium text-[#6b7280]">Client</label>
         <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="mb-3 w-full rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px]"><option value="">Select…</option>{state.clients.map((c) => <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>)}</select>
-        <label className="mb-1.5 block text-[12px] font-medium text-[#6b7280]">Service</label>
-        <select value={serviceId} onChange={(e) => { setServiceId(e.target.value); }} className="mb-3 w-full rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px]">{state.services.map((s) => <option key={s.id} value={s.id}>{s.name} · {money(s.priceMinor, state.settings.currency)}</option>)}</select>
+
+        <label className="mb-1.5 block text-[12px] font-medium text-[#6b7280]">Services {serviceIds.length > 1 && <span className="text-[#9fa5a4]">(booked back-to-back)</span>}</label>
+        <div className="mb-2 space-y-1.5">
+          {chosen.map((s) => (
+            <div key={s.id} className="flex items-center gap-2 rounded-lg border border-[#eef0f2] px-3 py-1.5 text-[13px]">
+              <span className="flex-1">{s.name} · {money(s.priceMinor, state.settings.currency)} · {s.durationMin}m</span>
+              {serviceIds.length > 1 && <button onClick={() => remove(s.id)} className="text-[#9fa5a4] hover:text-[#d06277]"><X className="size-3.5" /></button>}
+            </div>
+          ))}
+        </div>
+        {available.length > 0 && (
+          <div className="mb-3 flex gap-2">
+            <select value={addSel} onChange={(e) => setAddSel(e.target.value)} className="flex-1 rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px]"><option value="">+ Add a service…</option>{available.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+            <button disabled={!addSel} onClick={add} className="rounded-lg border border-[#e6e7e7] px-3 text-[13px] font-medium disabled:opacity-40">Add</button>
+          </div>
+        )}
+
         <label className="mb-1.5 block text-[12px] font-medium text-[#6b7280]">Staff</label>
-        <select value={staffId} onChange={(e) => setStaffId(e.target.value)} className="mb-4 w-full rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px]">{eligibleStaff.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
-        <button disabled={!clientId || !serviceId || !staffId} onClick={submit} className="w-full rounded-lg bg-[#1f2a4d] py-2.5 text-[14px] font-semibold text-white disabled:opacity-40">Book appointment</button>
+        <select value={staffId} onChange={(e) => setStaffId(e.target.value)} className="mb-2 w-full rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px]">{state.staff.map((m) => <option key={m.id} value={m.id} disabled={!eligibleStaff.some((x) => x.id === m.id)}>{m.name}{!eligibleStaff.some((x) => x.id === m.id) ? " (can't do all)" : ""}</option>)}</select>
+
+        <div className="mb-4 mt-3 flex items-center justify-between border-t border-[#eef0f2] pt-3 text-[14px]"><span className="font-medium">Total</span><span className="font-semibold">{money(totalPrice, state.settings.currency)}</span></div>
+        <button disabled={!clientId || !staffOk || serviceIds.length === 0} onClick={submit} className="w-full rounded-lg bg-[#1f2a4d] py-2.5 text-[14px] font-semibold text-white disabled:opacity-40">Book {serviceIds.length > 1 ? `${serviceIds.length} services` : "appointment"}</button>
       </div>
     </div>
   );
