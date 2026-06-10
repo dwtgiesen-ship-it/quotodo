@@ -1,0 +1,108 @@
+// SalonFlow — local development schema (SQLite, zero external services).
+// Production uses the Postgres + RLS schema in docs/salonflow/prisma/schema.prisma.
+// SQLite has no native enums or scalar lists, so enum-ish fields are strings and
+// list/JSON fields (serviceIds, tags) are stored as JSON strings. The app-layer
+// TypeScript unions in src/app/salonflow/lib/types.ts constrain the values.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Salon {
+  id                 String  @id @default(cuid())
+  name               String
+  slug               String  @unique
+  vertical           String
+  currency           String  @default("EUR")
+  timezone           String  @default("Europe/Amsterdam")
+  onboardingComplete Boolean @default(false)
+  calendarConnected  Boolean @default(false)
+
+  services     Service[]
+  staff        Staff[]
+  clients      Client[]
+  appointments Appointment[]
+}
+
+model Service {
+  id             String  @id @default(cuid())
+  salonId        String
+  salon          Salon   @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  name           String
+  category       String
+  durationMin    Int
+  priceMinor     Int
+  depositMinor   Int?
+  bookableOnline Boolean @default(true)
+  sortOrder      Int     @default(0)
+
+  appointments Appointment[]
+
+  @@index([salonId])
+}
+
+model Staff {
+  id             String  @id @default(cuid())
+  salonId        String
+  salon          Salon   @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  name           String
+  initials       String
+  color          String  @default("#8B5FB8")
+  role           String  @default("staff")
+  bookableOnline Boolean @default(true)
+  serviceIds     String  @default("[]") // JSON array of service ids
+
+  appointments Appointment[]
+
+  @@index([salonId])
+}
+
+model Client {
+  id              String @id @default(cuid())
+  salonId         String
+  salon           Salon  @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  firstName       String
+  lastName        String @default("")
+  email           String @default("")
+  phone           String @default("")
+  notes           String @default("")
+  since           String // ISO date (yyyy-mm-dd)
+  totalSpendMinor Int    @default(0)
+  loyaltyPoints   Int    @default(0)
+  tier            String @default("standard")
+  tags            String @default("[]") // JSON array
+
+  appointments Appointment[]
+
+  @@index([salonId])
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  salonId   String
+  salon     Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  day       Int
+  start     Float
+  end       Float
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id])
+  staffId   String
+  staff     Staff    @relation(fields: [staffId], references: [id])
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id])
+  status    String   @default("booked")
+  source    String   @default("dashboard")
+  isNew     Boolean  @default(false)
+  starred   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([salonId, day])
+  @@index([salonId, staffId, day])
+  @@index([salonId, clientId])
+}

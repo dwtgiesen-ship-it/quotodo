@@ -1,9 +1,10 @@
 "use client";
 
-// Client-side demo store for SalonFlow. Holds the full salon state in React
-// context, persists to localStorage, and exposes typed mutators. In production
-// these mutators map 1:1 to the REST endpoints in docs/salonflow/04-api-and-auth.md;
-// here they mutate the in-browser store so the whole app is interactive without a backend.
+// Client-side store for SalonFlow, now backed by the real API.
+// - Hydrates from GET /api/salonflow/state on mount (SQLite via Prisma).
+// - Each mutator updates local state optimistically for instant UX, then persists
+//   to the API; on failure it re-hydrates from the server (source of truth).
+// The mutator signatures are unchanged, so the screens did not need rewriting.
 
 import {
   createContext,
@@ -19,10 +20,7 @@ import type {
   Client,
   SalonState,
   Service,
-  Staff,
 } from "./types";
-
-const STORAGE_KEY = "salonflow-demo-v1";
 
 type BookingInput = {
   day: number;
@@ -37,11 +35,10 @@ type BookingResult = { ok: true; appointment: Appointment } | { ok: false; reaso
 
 type Store = {
   state: SalonState;
-  // selectors
+  ready: boolean;
   serviceById: (id: string) => Service | undefined;
-  staffById: (id: string) => Staff | undefined;
+  staffById: (id: string) => SalonState["staff"][number] | undefined;
   clientById: (id: string) => Client | undefined;
-  // mutators
   book: (input: BookingInput) => BookingResult;
   moveAppointment: (id: string, day: number, start: number) => BookingResult;
   setStatus: (id: string, status: Appointment["status"]) => void;
@@ -64,29 +61,44 @@ function nextId(prefix: string) {
   return `${prefix}-${counter}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+const api = {
+  async json(url: string, method: string, body?: unknown) {
+    const res = await fetch(url, {
+      method,
+      headers: { "content-type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok && res.status !== 409) throw new Error(`${method} ${url} -> ${res.status}`);
+    return res.json();
+  },
+};
+
 export function SalonProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<SalonState>(SEED);
-  const [hydrated, setHydrated] = useState(false);
+  const [ready, setReady] = useState(false);
 
-  // hydrate from localStorage after mount (avoids SSR hydration mismatch)
-  useEffect(() => {
+  const hydrate = useCallback(async () => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setState(JSON.parse(raw));
+      const res = await fetch("/api/salonflow/state", { cache: "no-store" });
+      if (res.ok) setState(await res.json());
     } catch {
-      /* ignore */
+      /* keep optimistic/seed state */
+    } finally {
+      setReady(true);
     }
-    setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      /* ignore */
-    }
-  }, [state, hydrated]);
+    hydrate();
+  }, [hydrate]);
+
+  // fire-and-forget persistence; re-hydrate on failure so the UI never drifts from the DB
+  const persist = useCallback(
+    (p: Promise<unknown>) => {
+      p.catch(() => hydrate());
+    },
+    [hydrate],
+  );
 
   const serviceById = useCallback((id: string) => state.services.find((s) => s.id === id), [state.services]);
   const staffById = useCallback((id: string) => state.staff.find((s) => s.id === id), [state.staff]);
@@ -97,13 +109,8 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
       const svc = state.services.find((s) => s.id === input.serviceId);
       if (!svc) return { ok: false, reason: "Unknown service" };
       const end = input.start + svc.durationMin / 60;
-      // conflict check: same staff, same day, overlapping time, active status
       const conflict = state.appointments.find(
-        (a) =>
-          a.staffId === input.staffId &&
-          a.day === input.day &&
-          a.status !== "cancelled" &&
-          overlaps({ start: input.start, end }, a),
+        (a) => a.staffId === input.staffId && a.day === input.day && a.status !== "cancelled" && overlaps({ start: input.start, end }, a),
       );
       if (conflict) return { ok: false, reason: "That time conflicts with another appointment for this staff member." };
       const appointment: Appointment = {
@@ -119,98 +126,90 @@ export function SalonProvider({ children }: { children: React.ReactNode }) {
         isNew: true,
       };
       setState((s) => ({ ...s, appointments: [...s.appointments, appointment] }));
+      persist(api.json("/api/salonflow/appointments", "POST", { id: appointment.id, ...input }));
       return { ok: true, appointment };
     },
-    [state.services, state.appointments],
+    [state.services, state.appointments, persist],
   );
 
   const moveAppointment = useCallback<Store["moveAppointment"]>(
     (id, day, start) => {
       const appt = state.appointments.find((a) => a.id === id);
       if (!appt) return { ok: false, reason: "Not found" };
-      const dur = appt.end - appt.start;
-      const end = start + dur;
+      const end = start + (appt.end - appt.start);
       const conflict = state.appointments.find(
-        (a) =>
-          a.id !== id &&
-          a.staffId === appt.staffId &&
-          a.day === day &&
-          a.status !== "cancelled" &&
-          overlaps({ start, end }, a),
+        (a) => a.id !== id && a.staffId === appt.staffId && a.day === day && a.status !== "cancelled" && overlaps({ start, end }, a),
       );
       if (conflict) return { ok: false, reason: "Conflict — slot is taken." };
-      setState((s) => ({
-        ...s,
-        appointments: s.appointments.map((a) => (a.id === id ? { ...a, day, start, end } : a)),
-      }));
+      setState((s) => ({ ...s, appointments: s.appointments.map((a) => (a.id === id ? { ...a, day, start, end } : a)) }));
+      persist(api.json(`/api/salonflow/appointments/${id}`, "PATCH", { day, start }));
       return { ok: true, appointment: { ...appt, day, start, end } };
     },
-    [state.appointments],
+    [state.appointments, persist],
   );
 
-  const setStatus = useCallback<Store["setStatus"]>((id, status) => {
-    setState((s) => ({
-      ...s,
-      appointments: s.appointments.map((a) => (a.id === id ? { ...a, status } : a)),
-    }));
-  }, []);
+  const setStatus = useCallback<Store["setStatus"]>(
+    (id, status) => {
+      setState((s) => ({ ...s, appointments: s.appointments.map((a) => (a.id === id ? { ...a, status } : a)) }));
+      persist(api.json(`/api/salonflow/appointments/${id}`, "PATCH", { status }));
+    },
+    [persist],
+  );
 
-  const addClient = useCallback<Store["addClient"]>((c) => {
-    const client: Client = {
-      id: nextId("cl"),
-      firstName: c.firstName,
-      lastName: c.lastName ?? "",
-      email: c.email ?? "",
-      phone: c.phone ?? "",
-      notes: c.notes ?? "",
-      since: c.since ?? new Date().toISOString().slice(0, 10),
-      totalSpendMinor: c.totalSpendMinor ?? 0,
-      loyaltyPoints: c.loyaltyPoints ?? 0,
-      tier: c.tier ?? "standard",
-      tags: c.tags ?? ["New"],
-    };
-    setState((s) => ({ ...s, clients: [...s.clients, client] }));
-    return client;
-  }, []);
-
-  const upsertService = useCallback<Store["upsertService"]>((svc) => {
-    setState((s) => {
-      const exists = s.services.some((x) => x.id === svc.id);
-      return {
-        ...s,
-        services: exists ? s.services.map((x) => (x.id === svc.id ? svc : x)) : [...s.services, svc],
+  const addClient = useCallback<Store["addClient"]>(
+    (c) => {
+      const client: Client = {
+        id: nextId("cl"),
+        firstName: c.firstName,
+        lastName: c.lastName ?? "",
+        email: c.email ?? "",
+        phone: c.phone ?? "",
+        notes: c.notes ?? "",
+        since: c.since ?? new Date().toISOString().slice(0, 10),
+        totalSpendMinor: c.totalSpendMinor ?? 0,
+        loyaltyPoints: c.loyaltyPoints ?? 0,
+        tier: c.tier ?? "standard",
+        tags: c.tags ?? ["New"],
       };
-    });
-  }, []);
+      setState((s) => ({ ...s, clients: [...s.clients, client] }));
+      persist(api.json("/api/salonflow/clients", "POST", client));
+      return client;
+    },
+    [persist],
+  );
 
-  const removeService = useCallback<Store["removeService"]>((id) => {
-    setState((s) => ({ ...s, services: s.services.filter((x) => x.id !== id) }));
-  }, []);
+  const upsertService = useCallback<Store["upsertService"]>(
+    (svc) => {
+      setState((s) => {
+        const exists = s.services.some((x) => x.id === svc.id);
+        return { ...s, services: exists ? s.services.map((x) => (x.id === svc.id ? svc : x)) : [...s.services, svc] };
+      });
+      persist(api.json("/api/salonflow/services", "POST", svc));
+    },
+    [persist],
+  );
 
-  const updateSettings = useCallback<Store["updateSettings"]>((patch) => {
-    setState((s) => ({ ...s, settings: { ...s.settings, ...patch } }));
-  }, []);
+  const removeService = useCallback<Store["removeService"]>(
+    (id) => {
+      setState((s) => ({ ...s, services: s.services.filter((x) => x.id !== id) }));
+      persist(api.json(`/api/salonflow/services/${id}`, "DELETE"));
+    },
+    [persist],
+  );
 
-  const reset = useCallback(() => {
-    setState(SEED);
-  }, []);
+  const updateSettings = useCallback<Store["updateSettings"]>(
+    (patch) => {
+      setState((s) => ({ ...s, settings: { ...s.settings, ...patch } }));
+      persist(api.json("/api/salonflow/settings", "PATCH", patch));
+    },
+    [persist],
+  );
+
+  const reset = useCallback(() => hydrate(), [hydrate]);
 
   const value = useMemo<Store>(
-    () => ({
-      state,
-      serviceById,
-      staffById,
-      clientById,
-      book,
-      moveAppointment,
-      setStatus,
-      addClient,
-      upsertService,
-      removeService,
-      updateSettings,
-      reset,
-    }),
-    [state, serviceById, staffById, clientById, book, moveAppointment, setStatus, addClient, upsertService, removeService, updateSettings, reset],
+    () => ({ state, ready, serviceById, staffById, clientById, book, moveAppointment, setStatus, addClient, upsertService, removeService, updateSettings, reset }),
+    [state, ready, serviceById, staffById, clientById, book, moveAppointment, setStatus, addClient, upsertService, removeService, updateSettings, reset],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
