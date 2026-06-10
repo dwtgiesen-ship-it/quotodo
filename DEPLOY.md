@@ -9,51 +9,45 @@ accounts and paste a few values.
 
 ---
 
-## 1. Create the database (Neon — free tier) · ~3 min
+## 1. Create the database (Vercel Postgres) · ~2 min
 
-1. Sign up at <https://neon.tech> and create a project (region: EU, e.g.
-   Frankfurt, to match `Europe/Amsterdam`).
-2. From the project dashboard, copy **two** connection strings:
-   - **Pooled** connection → this is your `DATABASE_URL`
-   - **Direct** connection → this is your `DIRECT_URL`
-   (Neon shows both; the pooled one contains `-pooler`.)
+You're using Vercel Postgres (Neon-backed), so the DB lives next to the app:
 
-> Any Postgres works (Supabase, Vercel Postgres, RDS). Just provide both URLs;
-> if your provider has no separate pooler, set both to the same value.
+1. In your Vercel project: **Storage → Create Database → Postgres**, pick the EU
+   region (e.g. Frankfurt), and connect it to the project.
+2. Vercel auto-injects the connection env vars, including:
+   - `DATABASE_URL` (pooled) — used at runtime ✔ already wired
+   - `DATABASE_URL_UNPOOLED` (direct) — needed for schema push
+3. Add **one** env var manually (Settings → Environment Variables, Production):
+   - `DIRECT_URL` = the value of `DATABASE_URL_UNPOOLED`
 
-## 2. Deploy to Vercel · ~5 min
+> Prefer an external DB? Neon (neon.tech) works identically: copy its **pooled**
+> URL into `DATABASE_URL` and **direct** URL into `DIRECT_URL`.
 
-1. Sign up at <https://vercel.com> and **Import** this GitHub repo
-   (`dwtgiesen-ship-it/quotodo`). Vercel auto-detects Next.js — no build config
-   needed (`postinstall` runs `prisma generate`).
-2. Before the first deploy, add **Environment Variables** (Settings →
-   Environment Variables), for the **Production** environment:
+## 2. Set the app env vars
 
-   | Name                 | Value                                            |
-   |----------------------|--------------------------------------------------|
-   | `DATABASE_URL`       | Neon **pooled** URL                              |
-   | `DIRECT_URL`         | Neon **direct** URL                              |
-   | `NEXT_PUBLIC_APP_URL`| `https://schedulemode.com`                       |
-   | `PUBLIC_BASE_URL`    | `https://schedulemode.com`                       |
+Add these (Production) alongside the DB vars above:
 
-   (Optional, add later: `ANTHROPIC_API_KEY` for the real AI assistant;
-   `GOOGLE_*` / `MS_*` for live calendar sync; `RESEND_API_KEY` for client
-   emails. Without them the app uses safe fallbacks/mocks.)
-3. Click **Deploy**.
+| Name                  | Value                        |
+|-----------------------|------------------------------|
+| `NEXT_PUBLIC_APP_URL` | `https://schedulemode.com`   |
+| `PUBLIC_BASE_URL`     | `https://schedulemode.com`   |
 
-## 3. Initialize the database schema · ~1 min
+(Optional, add later: `ANTHROPIC_API_KEY`, `GOOGLE_*` / `MS_*` for live calendar
+sync, `RESEND_API_KEY` for client emails. Without them the app uses safe
+fallbacks/mocks.)
 
-The schema must be pushed to Neon once (and seeded with demo data if you want a
-populated demo salon). From your machine, with the Neon URLs in a local `.env`:
+## 3. Deploy
 
-```bash
-npm install
-npm run db:push     # creates all tables in Neon
-npm run db:seed     # optional: demo "Pearly" salon + sample data
-```
+`main` is the production branch. Every push to `main` deploys automatically.
+The build runs `prisma generate && prisma db push && next build` (see
+`vercel.json`), so **the database tables are created automatically on the first
+deploy** — no manual migration step. Trigger a deploy (push, or Vercel →
+Deployments → Redeploy) once the env vars above are set.
 
-(You can re-run `db:push` any time the schema changes. Production data is safe —
-`db push` is additive for these models.)
+> Note: the build creates tables but does **not** seed demo data — production
+> starts clean, and real salons are created through signup. To load the demo
+> "Pearly" data into a database, run `npm run db:seed` locally against it.
 
 ## 4. Point schedulemode.com at Vercel (GoDaddy) · ~10 min + DNS propagation
 
