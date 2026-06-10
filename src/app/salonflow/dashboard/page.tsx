@@ -2,13 +2,33 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { ArrowUpRight, Sparkles, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
+import { ArrowUpRight, Clock, Sparkles, TrendingUp } from "lucide-react";
 import { useSalon } from "../lib/store";
-import { CATEGORY_STYLES, DAYS, money } from "../lib/types";
+import { CATEGORY_STYLES, DAY_END, DAY_START, DAYS, money } from "../lib/types";
 
 export default function DashboardPage() {
-  const { state, serviceById, staffById } = useSalon();
+  const { state, serviceById, staffById, book, removeWaitlist } = useSalon();
   const { appointments, services, staff, clients, settings } = state;
+
+  function offerWaitlist(entryId: string, clientId: string, serviceId: string, preferDay: number) {
+    const svc = serviceById(serviceId);
+    if (!svc) return;
+    const dur = svc.durationMin / 60;
+    const days = preferDay >= 0 ? [preferDay] : DAYS.map((_, i) => i);
+    for (const day of days) {
+      for (const m of staff.filter((s) => s.serviceIds.includes(serviceId))) {
+        const taken = appointments.filter((a) => a.staffId === m.id && a.day === day && a.status !== "cancelled");
+        for (let t = DAY_START; t + dur <= DAY_END; t += 0.5) {
+          if (!taken.some((a) => t < a.end && a.start < t + dur)) {
+            const res = book({ serviceId, staffId: m.id, clientId, day, start: t, source: "ai" });
+            if (res.ok) { removeWaitlist(entryId); toast.success(`Booked from waitlist — ${DAYS[day].label} ${DAYS[day].date}`); return; }
+          }
+        }
+      }
+    }
+    toast.error("No open slot found this week");
+  }
 
   const metrics = useMemo(() => {
     const active = appointments.filter((a) => a.status !== "cancelled");
@@ -148,6 +168,29 @@ export default function DashboardPage() {
               action="Fill slots"
             />
           </div>
+        </Card>
+
+        {/* Waitlist */}
+        <Card title="Waitlist">
+          {state.waitlist.length === 0 ? (
+            <p className="pt-1 text-[13px] text-[#9fa5a4]">No one waiting. Cancellations will surface matches here.</p>
+          ) : (
+            <div className="space-y-2 pt-1">
+              {state.waitlist.map((w) => {
+                const client = clients.find((c) => c.id === w.clientId);
+                const svc = serviceById(w.serviceId);
+                return (
+                  <div key={w.id} className="flex items-center justify-between rounded-lg bg-[#f8f9f9] px-3 py-2">
+                    <div className="flex items-center gap-2 text-[13px]">
+                      <Clock className="size-4 text-[#9fa5a4]" />
+                      <span><span className="font-medium">{client?.firstName} {client?.lastName}</span> · {svc?.name} · {w.windowDay >= 0 ? DAYS[w.windowDay].label : "any day"}</span>
+                    </div>
+                    <button onClick={() => offerWaitlist(w.id, w.clientId, w.serviceId, w.windowDay)} className="rounded-md bg-[#1f2a4d] px-2.5 py-1 text-[12px] font-medium text-white hover:bg-[#28356180]">Book slot</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
       </div>
     </div>
