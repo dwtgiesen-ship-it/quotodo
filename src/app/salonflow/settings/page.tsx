@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Copy, Mail, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useSalon } from "../lib/store";
 import { useRole, Restricted } from "../components/role";
 import type { Staff, Weekday, WeeklyHours } from "../lib/types";
@@ -68,6 +68,7 @@ export default function SettingsPage() {
       </Section>
 
       <TeamSection />
+      <InviteSection />
 
       <p className="mt-6 text-center text-[12px] text-[#9fa5a4]">Changes save automatically to the API. Onboarding wizard: <a href="/salonflow/onboarding" className="underline">re-run setup</a>.</p>
     </div>
@@ -131,4 +132,94 @@ function Section({ title, children, action }: { title: string; children: React.R
 }
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return <div className="mb-3 flex items-center justify-between gap-4 last:mb-0"><span className="text-[13px] text-[#6b7280]">{label}</span><div className="flex-1 text-right [&>*]:ml-auto [&>input]:max-w-xs">{children}</div></div>;
+}
+
+const INVITE_ROLES = [
+  { id: "staff", label: "Staff" },
+  { id: "manager", label: "Manager" },
+  { id: "receptionist", label: "Receptionist" },
+];
+
+type Invite = { id: string; email: string; name: string; role: string; token: string; expiresAt: string };
+
+function InviteSection() {
+  const { user } = useRole();
+  const [invites, setInvites] = useState<Invite[]>([]);
+  const [inviting, setInviting] = useState(false);
+
+  function load() {
+    fetch("/api/salonflow/auth/invite", { cache: "no-store" }).then((r) => r.json()).then((d) => setInvites(d.invitations ?? [])).catch(() => {});
+  }
+  useEffect(() => { if (user) load(); }, [user]);
+
+  async function copyLink(token: string) {
+    const link = `${location.origin}/salonflow/invite/${token}`;
+    try { await navigator.clipboard.writeText(link); toast.success("Invite link copied — send it to your teammate"); }
+    catch { toast.success("Invite link: " + link); }
+  }
+  async function revoke(id: string) {
+    await fetch(`/api/salonflow/auth/invite?id=${id}`, { method: "DELETE" });
+    toast.success("Invitation revoked");
+    load();
+  }
+
+  if (!user) {
+    return (
+      <Section title="Invite your team">
+        <p className="text-[13px] text-[#9fa5a4]">Create an account to invite team members who can log in with their own roles. <Link href="/salonflow/signup" className="font-medium text-[#1f2a4d] underline">Start free</Link>.</p>
+      </Section>
+    );
+  }
+
+  return (
+    <Section title="Invite your team" action={<button onClick={() => setInviting(true)} className="flex items-center gap-1 rounded-md bg-[#1f2a4d] px-2.5 py-1.5 text-[12px] font-medium text-white"><Mail className="size-3.5" /> Invite</button>}>
+      {invites.length === 0 ? (
+        <p className="text-[13px] text-[#9fa5a4]">No pending invitations. Invite a teammate and share their link — they set a password and join with the role you choose.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {invites.map((inv) => (
+            <div key={inv.id} className="flex items-center gap-3 rounded-lg border border-[#eef0f2] px-3 py-2">
+              <Mail className="size-4 text-[#9fa5a4]" />
+              <div className="min-w-0 flex-1"><div className="truncate text-[14px] font-medium">{inv.email}</div><div className="text-[12px] text-[#9fa5a4] capitalize">{inv.role} · pending</div></div>
+              <button onClick={() => copyLink(inv.token)} className="flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-[#5777B0] hover:bg-[#eef2fb]"><Copy className="size-3.5" /> Copy link</button>
+              <button onClick={() => revoke(inv.id)} className="grid size-7 place-items-center rounded-md text-[#9fa5a4] hover:bg-[#fdf0f2] hover:text-[#d06277]"><X className="size-4" /></button>
+            </div>
+          ))}
+        </div>
+      )}
+      {inviting && <InviteModal onClose={() => setInviting(false)} onCreated={(token) => { copyLink(token); load(); setInviting(false); }} />}
+    </Section>
+  );
+}
+
+function InviteModal({ onClose, onCreated }: { onClose: () => void; onCreated: (token: string) => void }) {
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("staff");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit() {
+    setBusy(true); setError("");
+    const res = await fetch("/api/salonflow/auth/invite", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, role }) });
+    const data = await res.json();
+    if (data.ok) onCreated(data.token);
+    else { setError(data.reason ?? "Could not create invite."); setBusy(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between"><h3 className="text-[16px] font-semibold">Invite a team member</h3><button onClick={onClose} className="text-[#9fa5a4]"><X className="size-4" /></button></div>
+        <label className="mb-1.5 block text-[12px] font-medium text-[#6b7280]">Email</label>
+        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="teammate@email.com" className="mb-3 w-full rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-[#dfe1e1]" />
+        <label className="mb-1.5 block text-[12px] font-medium text-[#6b7280]">Role</label>
+        <select value={role} onChange={(e) => setRole(e.target.value)} className="mb-4 w-full rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px]">
+          {INVITE_ROLES.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+        </select>
+        {error && <p className="mb-3 rounded-lg bg-[#fdf0f2] px-3 py-2 text-[12px] text-[#d06277]">{error}</p>}
+        <button disabled={busy || !email} onClick={submit} className="w-full rounded-lg bg-[#1f2a4d] py-2.5 text-[14px] font-semibold text-white disabled:opacity-40">Create invite link</button>
+        <p className="mt-2 text-center text-[11px] text-[#9fa5a4]">We&apos;ll generate a link to share (no email is sent in the demo).</p>
+      </div>
+    </div>
+  );
 }

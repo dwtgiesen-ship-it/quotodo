@@ -355,3 +355,17 @@ model Session {
 
   @@index([userId])
 }
+
+model Invitation {
+  id        String   @id @default(cuid())
+  salonId   String
+  email     String
+  name      String   @default("")
+  role      String   @default("staff") // manager | staff | receptionist
+  token     String   @unique
+  status    String   @default("pending") // pending | accepted | revoked
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([salonId])
+}

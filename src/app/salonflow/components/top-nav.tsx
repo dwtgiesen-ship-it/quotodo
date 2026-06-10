@@ -33,8 +33,8 @@ export function TopNav() {
   const { state } = useSalon();
   const { role, setRole, can, user, logout } = useRole();
 
-  // Login / signup are full-screen — no app chrome.
-  if (pathname === "/salonflow/login" || pathname === "/salonflow/signup") return null;
+  // Login / signup / invite acceptance are full-screen — no app chrome.
+  if (pathname === "/salonflow/login" || pathname === "/salonflow/signup" || pathname.startsWith("/salonflow/invite")) return null;
 
   const visible = NAV.filter((n) => {
     if (n.href.endsWith("/reports") || n.href.endsWith("/memberships")) return can("reports");

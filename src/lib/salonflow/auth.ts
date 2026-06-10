@@ -101,3 +101,45 @@ export async function authenticate(email: string, password: string): Promise<Sig
   if (!user || !verifyPassword(password, user.passwordHash)) return { ok: false, reason: "Wrong email or password." };
   return { ok: true, user: { id: user.id, email: user.email, name: user.name, salonId: user.salonId, role: user.role } };
 }
+
+// ── staff invitations ──────────────────────────────────────────────────────────
+const INVITE_DAYS = 7;
+
+export async function createInvitation(salonId: string, email: string, name: string, role: string) {
+  const token = randomBytes(24).toString("hex");
+  const inv = await prisma.invitation.create({
+    data: { salonId, email: email.trim().toLowerCase(), name: name.trim(), role, token, expiresAt: new Date(Date.now() + INVITE_DAYS * 86400e3) },
+  });
+  return inv;
+}
+
+export async function listInvitations(salonId: string) {
+  const rows = await prisma.invitation.findMany({ where: { salonId, status: "pending" }, orderBy: { createdAt: "desc" } });
+  return rows.map((i) => ({ id: i.id, email: i.email, name: i.name, role: i.role, token: i.token, expiresAt: i.expiresAt.toISOString() }));
+}
+
+export async function revokeInvitation(salonId: string, id: string) {
+  await prisma.invitation.updateMany({ where: { id, salonId, status: "pending" }, data: { status: "revoked" } });
+}
+
+export async function getInvitation(token: string) {
+  const inv = await prisma.invitation.findUnique({ where: { token } });
+  if (!inv || inv.status !== "pending" || inv.expiresAt < new Date()) return null;
+  const salon = await prisma.salon.findUnique({ where: { id: inv.salonId } });
+  return { email: inv.email, name: inv.name, role: inv.role, salonName: salon?.name ?? "the salon" };
+}
+
+export async function acceptInvitation(token: string, name: string, password: string): Promise<SignupResult> {
+  const inv = await prisma.invitation.findUnique({ where: { token } });
+  if (!inv || inv.status !== "pending" || inv.expiresAt < new Date()) return { ok: false, reason: "This invitation is no longer valid." };
+  if (password.length < 8) return { ok: false, reason: "Password must be at least 8 characters." };
+  const existing = await prisma.user.findUnique({ where: { email: inv.email } });
+  if (existing) return { ok: false, reason: "An account with that email already exists. Log in instead." };
+
+  const memberName = name.trim() || inv.name || inv.email.split("@")[0];
+  const initials = memberName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+  await prisma.staff.create({ data: { salonId: inv.salonId, name: memberName, initials, role: inv.role, serviceIds: "[]" } });
+  const user = await prisma.user.create({ data: { email: inv.email, name: memberName, passwordHash: hashPassword(password), salonId: inv.salonId, role: inv.role } });
+  await prisma.invitation.update({ where: { token }, data: { status: "accepted" } });
+  return { ok: true, user: { id: user.id, email: user.email, name: user.name, salonId: user.salonId, role: user.role } };
+}
