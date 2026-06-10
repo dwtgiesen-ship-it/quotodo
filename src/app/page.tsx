@@ -1,10 +1,10 @@
-/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, CalendarSync, Check, Gauge, Minus, Sparkles, Star, Zap } from "lucide-react";
 import { getDict } from "@/lib/i18n-server";
 import { SiteNav } from "@/components/marketing/site-nav";
 import { SiteFooter } from "@/components/marketing/site-footer";
+import { CalendarMock, ClientsMock, DashboardMock, ReportsMock, SyncMock } from "@/components/marketing/mockups";
 
 export const metadata: Metadata = {
   title: "Schedulemode — the easiest salon software in the world",
@@ -12,25 +12,9 @@ export const metadata: Metadata = {
 };
 
 const DIFF_ICONS = [Gauge, CalendarSync, Sparkles, Zap];
-const FEATURE_IMGS = [
-  { img: "/shots/calendar.png", alt: "Schedulemode calendar" },
-  { img: "/shots/clients.png", alt: "Client profiles" },
-  { img: "/shots/sync.png", alt: "Calendar sync" },
-  { img: "/shots/reports.png", alt: "Reports" },
-];
+// Live, always-in-sync product mockups (one per alternating feature section).
+const FEATURE_MOCKS = [CalendarMock, ClientsMock, SyncMock, ReportsMock];
 const WHO_DOTS = ["#4F9A57", "#8B5FB8", "#D06277", "#5777B0", "#3F968C", "#e6b54a", "#7b4fae", "#4F9A57"];
-
-function Frame({ src, alt }: { src: string; alt: string }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-[#e6e7e7] bg-white shadow-[0_24px_70px_-30px_rgba(31,42,77,0.35)]">
-      <div className="flex items-center gap-1.5 border-b border-[#eef0f2] bg-[#1f2a4d] px-3 py-2">
-        <span className="size-2.5 rounded-full bg-white/30" /><span className="size-2.5 rounded-full bg-white/30" /><span className="size-2.5 rounded-full bg-white/30" />
-        <span className="ml-2 truncate text-[11px] text-white/60">app.schedulemode.com</span>
-      </div>
-      <img src={src} alt={alt} className="block w-full" loading="lazy" />
-    </div>
-  );
-}
 
 export default async function Home() {
   const d = await getDict();
@@ -55,7 +39,7 @@ export default async function Home() {
             <div className="mt-5 flex items-center gap-2 text-[13px] text-[#9097a3]"><Check className="size-4 text-[#4F9A57]" /> {d.hero.noCard}</div>
           </div>
           <div className="relative">
-            <Frame src="/shots/calendar.png" alt="Schedulemode calendar" />
+            <DashboardMock />
             <div className="absolute -bottom-5 -left-4 hidden rounded-2xl border border-[#eef0f2] bg-white px-4 py-3 shadow-lg sm:block">
               <div className="flex items-center gap-2 text-[13px] font-medium text-[#7b4fae]"><Sparkles className="size-4" /> {d.hero.floatCard}</div>
             </div>
@@ -98,7 +82,7 @@ export default async function Home() {
         <div className="mx-auto max-w-6xl px-5 py-16 text-center md:py-20">
           <h2 className="mx-auto max-w-2xl font-heading text-[30px] font-semibold tracking-tight [text-wrap:balance] md:text-[40px]">{d.band.title}</h2>
           <p className="mx-auto mt-3 max-w-xl text-[16px] text-white/65 [text-wrap:pretty]">{d.band.subtitle}</p>
-          <div className="mt-9 overflow-hidden rounded-2xl border border-white/10 shadow-2xl"><img src="/shots/dashboard.png" alt="Schedulemode dashboard" className="block w-full" loading="lazy" /></div>
+          <div className="mx-auto mt-9 max-w-3xl"><DashboardMock /></div>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2.5">
             {d.band.pills.map((f) => <span key={f} className="rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[13px] font-medium text-white/80">{f}</span>)}
           </div>
@@ -109,7 +93,7 @@ export default async function Home() {
       <div className="mx-auto max-w-6xl px-5">
         {d.features.map((f, i) => {
           const reverse = i % 2 === 1;
-          const media = FEATURE_IMGS[i];
+          const Mock = FEATURE_MOCKS[i % FEATURE_MOCKS.length];
           return (
             <section key={f.title} id={i === 0 ? "features" : undefined} className="grid items-center gap-10 py-16 md:grid-cols-2 md:py-20">
               <div className={reverse ? "md:order-2" : ""}>
@@ -120,7 +104,7 @@ export default async function Home() {
                   {f.bullets.map((b) => <li key={b} className="flex items-start gap-2 text-[14px] text-[#3f4658]"><Check className="mt-0.5 size-4 shrink-0 text-[#4F9A57]" /> {b}</li>)}
                 </ul>
               </div>
-              <div className={reverse ? "md:order-1" : ""}><Frame src={media.img} alt={media.alt} /></div>
+              <div className={reverse ? "md:order-1" : ""}><Mock /></div>
             </section>
           );
         })}
