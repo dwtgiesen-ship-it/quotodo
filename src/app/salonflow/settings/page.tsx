@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useSalon } from "../lib/store";
@@ -38,9 +39,9 @@ export default function SettingsPage() {
           <select value={state.settings.currency} onChange={(e) => updateSettings({ currency: e.target.value })} className="rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px]"><option>EUR</option><option>GBP</option><option>USD</option></select>
         </Row>
         <Row label="Calendar sync">
-          <button onClick={() => { updateSettings({ calendarConnected: !state.settings.calendarConnected }); toast.success(state.settings.calendarConnected ? "Calendar disconnected" : "Calendar connected (demo)"); }} className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-medium ${state.settings.calendarConnected ? "bg-[#dcefd8] text-[#234A28]" : "border border-[#e6e7e7]"}`}>
-            {state.settings.calendarConnected ? <><Check className="size-4" /> Connected</> : "Connect Google / Microsoft / Apple"}
-          </button>
+          <Link href="/salonflow/settings/calendar" className="inline-flex items-center gap-1.5 rounded-lg border border-[#e6e7e7] px-3 py-2 text-[13px] font-medium hover:bg-[#f4f5f4]">
+            {state.settings.calendarConnected ? <><Check className="size-4 text-[#4F9A57]" /> Manage calendar sync</> : "Set up calendar sync"}
+          </Link>
         </Row>
       </Section>
 

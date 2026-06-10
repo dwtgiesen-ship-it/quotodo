@@ -9,6 +9,12 @@ const prisma = new PrismaClient();
 
 async function main() {
   // wipe (children first)
+  await prisma.syncLog.deleteMany({ where: { salonId: DEMO_SALON_ID } });
+  await prisma.syncJob.deleteMany({ where: { salonId: DEMO_SALON_ID } });
+  await prisma.externalEventLink.deleteMany({ where: { salonId: DEMO_SALON_ID } });
+  await prisma.externalBusyBlock.deleteMany({ where: { salonId: DEMO_SALON_ID } });
+  await prisma.calendarChannel.deleteMany({ where: { salonId: DEMO_SALON_ID } });
+  await prisma.calendarConnection.deleteMany({ where: { salonId: DEMO_SALON_ID } });
   await prisma.message.deleteMany({ where: { salonId: DEMO_SALON_ID } });
   await prisma.campaign.deleteMany({ where: { salonId: DEMO_SALON_ID } });
   await prisma.loyaltyTransaction.deleteMany({ where: { salonId: DEMO_SALON_ID } });

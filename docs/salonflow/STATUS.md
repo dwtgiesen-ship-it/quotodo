@@ -56,7 +56,14 @@ role" gate (Reports/Memberships/Messages/Settings require manager+).
   Production: Clerk org + the RLS tenant guard.
 - **Payments** — Stripe designed in `02`/`04`; "Go to Payments", deposits, membership billing
   are UI only.
-- **Calendar sync** — Google/MS/Apple two-way sync architected in `02 §5`; needs OAuth secrets.
+- **Calendar sync** — the full two-way **engine is built** (see `08-calendar-sync.md`): provider
+  abstraction, Google/Microsoft/Apple adapters, reconciliation with echo-loop prevention, a
+  durable retry queue, webhook + OAuth routes, a live sync dashboard at
+  `/salonflow/settings/calendar`, and 14 tests. It runs end-to-end in the demo via a mock
+  provider (Settings → Calendar sync → Connect → Simulate); the **real adapters activate when
+  you set `GOOGLE_CLIENT_ID/SECRET`, `MS_CLIENT_ID/SECRET`, `APPLE_CALDAV_URL`** — no
+  engine/route/UI change. A worker/cron drives `runDueJobs` in production (the dashboard's "Run
+  sync now" does it in the demo).
 - **Comms** — SMS/email/WhatsApp messages are logged, not delivered (no Twilio/Resend creds).
 - **Assistant LLM** — rule-based (no `ANTHROPIC_API_KEY` here); executes real API actions
   behind a confirm gate. Production swaps in the Claude agent from `06`; tools map 1:1 to the

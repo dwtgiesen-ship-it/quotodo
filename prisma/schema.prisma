@@ -220,3 +220,115 @@ model CustomerPhoto {
 
   @@index([salonId, clientId])
 }
+
+// ─── Calendar synchronization ────────────────────────────────────────────────
+
+model CalendarConnection {
+  id              String    @id @default(cuid())
+  salonId         String
+  staffId         String    // the staff member whose calendar this is
+  locationId      String?   // optional multi-location scoping
+  provider        String    // google | microsoft | apple
+  externalAccount String    // email / principal
+  accessToken     String    @default("") // encrypted at rest in production (KMS)
+  refreshToken    String    @default("") // encrypted at rest in production (KMS)
+  tokenExpiresAt  DateTime?
+  syncToken       String?   // Google syncToken / Graph deltaLink / CalDAV ctag
+  status          String    @default("active") // active | error | paused | disconnected
+  direction       String    @default("two_way") // two_way | inbound | outbound
+  lastSyncedAt    DateTime?
+  lastError       String    @default("")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([salonId])
+  @@index([salonId, staffId])
+  @@index([status])
+}
+
+model CalendarChannel {
+  id           String   @id @default(cuid())
+  salonId      String
+  connectionId String
+  provider     String
+  channelId    String   // Graph subscriptionId / Google channel id
+  resourceId   String   @default("")
+  clientState  String   @default("") // secret echoed back in webhooks for verification
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([connectionId])
+  @@index([expiresAt])
+}
+
+// Maps one of OUR appointments to its mirror event in an external calendar.
+// The stored etag is the echo-loop guard: an inbound change carrying our last
+// known etag is our own write coming back and is ignored.
+model ExternalEventLink {
+  id            String   @id @default(cuid())
+  salonId       String
+  connectionId  String
+  appointmentId String
+  externalId    String
+  etag          String   @default("")
+  updatedAt     DateTime @updatedAt
+
+  @@unique([connectionId, appointmentId])
+  @@index([salonId])
+  @@index([connectionId, externalId])
+}
+
+// Inbound external events that are NOT ours become unavailability ("busy") that
+// the booking engine respects, preventing double-booking against personal events.
+model ExternalBusyBlock {
+  id           String   @id @default(cuid())
+  salonId      String
+  connectionId String
+  staffId      String
+  externalId   String
+  etag         String   @default("")
+  summary      String   @default("Busy")
+  startsAt     DateTime
+  endsAt       DateTime
+  day          Int      @default(-1)   // demo-week coordinate (-1 if outside the visible week)
+  start        Float    @default(0)
+  end          Float    @default(0)
+  cancelled    Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([connectionId, externalId])
+  @@index([salonId, staffId])
+}
+
+// Durable retry queue. In production this is BullMQ/SQS; here it is DB-backed so
+// the demo runs with no broker. Workers are stateless and idempotent.
+model SyncJob {
+  id           String   @id @default(cuid())
+  salonId      String
+  connectionId String   @default("")
+  type         String   // pull | push | watch_renew | reconcile
+  payload      String   @default("{}")
+  status       String   @default("queued") // queued | running | done | failed | dead
+  attempts     Int      @default(0)
+  maxAttempts  Int      @default(5)
+  runAfter     DateTime @default(now())
+  lastError    String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status, runAfter])
+  @@index([salonId])
+}
+
+model SyncLog {
+  id           String   @id @default(cuid())
+  salonId      String
+  connectionId String   @default("")
+  level        String   @default("info") // info | warn | error
+  event        String
+  message      String   @default("")
+  createdAt    DateTime @default(now())
+
+  @@index([salonId, createdAt])
+  @@index([connectionId, createdAt])
+}

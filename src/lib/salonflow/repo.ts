@@ -81,8 +81,16 @@ export async function getState(salonId: string): Promise<SalonState> {
 }
 
 async function activeAppointments(salonId: string): Promise<Slotable[]> {
-  const rows = await prisma.appointment.findMany({ where: { salonId, NOT: { status: "cancelled" } } });
-  return rows.map((r) => ({ day: r.day, start: r.start, end: r.end, staffId: r.staffId, status: r.status }));
+  const [rows, busy] = await Promise.all([
+    prisma.appointment.findMany({ where: { salonId, NOT: { status: "cancelled" } } }),
+    // Externally-synced "busy" blocks (personal events from connected calendars)
+    // count as unavailability for that staff member — preventing double-booking.
+    prisma.externalBusyBlock.findMany({ where: { salonId, cancelled: false, day: { gte: 0 } } }),
+  ]);
+  return [
+    ...rows.map((r) => ({ day: r.day, start: r.start, end: r.end, staffId: r.staffId, status: r.status })),
+    ...busy.map((b) => ({ day: b.day, start: b.start, end: b.end, staffId: b.staffId, status: "external" })),
+  ];
 }
 
 export async function availability(salonId: string, serviceId: string, staffId: string, day: number): Promise<number[]> {
