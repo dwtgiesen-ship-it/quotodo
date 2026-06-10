@@ -7,14 +7,17 @@ export function Logo({ className = "size-8" }: { className?: string }) {
   return (
     <svg viewBox="0 0 40 40" fill="none" role="img" aria-label="Schedulemode" className={className}>
       <defs>
-        <linearGradient id="sm-logo-grad" x1="34" y1="6" x2="8" y2="34" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#C4A7F5" />
-          <stop offset="1" stopColor="#8B5CF6" />
+        <linearGradient id="sm-logo-grad" x1="6" y1="6.5" x2="35" y2="33.5" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#B79CF6" />
+          <stop offset="1" stopColor="#7C5CE6" />
         </linearGradient>
       </defs>
-      <rect x="15" y="6.5" width="21" height="7.5" rx="3.75" fill="url(#sm-logo-grad)" />
-      <rect x="6" y="16.25" width="28" height="7.5" rx="3.75" fill="url(#sm-logo-grad)" />
-      <rect x="9" y="26" width="19" height="7.5" rx="3.75" fill="url(#sm-logo-grad)" />
+      {/* top — short, right-aligned */}
+      <rect x="17" y="6.5" width="18" height="7.5" rx="3.75" fill="url(#sm-logo-grad)" />
+      {/* middle — full width */}
+      <rect x="5" y="16.25" width="30" height="7.5" rx="3.75" fill="url(#sm-logo-grad)" />
+      {/* bottom — short, left-aligned */}
+      <rect x="5" y="26" width="18" height="7.5" rx="3.75" fill="url(#sm-logo-grad)" />
     </svg>
   );
 }
