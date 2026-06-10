@@ -80,6 +80,8 @@ export type LoyaltyTransaction = {
   createdAt: string;
 };
 
+export type Channel = "sms" | "email" | "whatsapp";
+
 export type CampaignType = "confirmation" | "reminder" | "review" | "rebooking" | "birthday" | "win_back";
 
 export type Campaign = {
