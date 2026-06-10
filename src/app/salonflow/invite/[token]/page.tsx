@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 
 type Invite = { valid: boolean; email?: string; name?: string; role?: string; salonName?: string };
 
@@ -37,7 +38,7 @@ export default function AcceptInvitePage({ params }: { params: Promise<{ token: 
     <div className="grid min-h-full place-items-center bg-[#fafbfc] px-4 py-10">
       <div className="w-full max-w-sm">
         <Link href="/" className="mb-6 flex items-center justify-center gap-2">
-          <span className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-[#f0a8c0] to-[#9a7bd6] text-base font-bold text-white">S</span>
+          <Logo className="size-9" />
           <span className="font-heading text-[20px] font-bold tracking-tight text-[#1f2a4d]">Schedulemode</span>
         </Link>
         <div className="rounded-2xl border border-[#eef0f2] bg-white p-7 shadow-sm">

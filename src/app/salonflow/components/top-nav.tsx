@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { LogOut } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 import { useSalon } from "../lib/store";
 import { useRole } from "./role";
 
@@ -46,7 +47,7 @@ export function TopNav() {
     <header className="flex h-14 shrink-0 items-center justify-between bg-[#1f2a4d] px-4 text-white/90">
       <div className="flex min-w-0 items-center gap-1">
         <Link href="/salonflow/dashboard" className="mr-2 flex items-center gap-2">
-          <span className="grid size-8 place-items-center rounded-md bg-gradient-to-br from-[#f0a8c0] to-[#9a7bd6] text-sm font-bold text-white">S</span>
+          <Logo className="size-8" />
           <span className="hidden font-heading text-[16px] font-bold text-white lg:inline">Schedulemode</span>
         </Link>
         <nav className="flex min-w-0 items-center overflow-x-auto">

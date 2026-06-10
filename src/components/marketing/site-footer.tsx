@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getDict } from "@/lib/i18n-server";
+import { Logo } from "@/components/brand/logo";
 import { LanguageSwitcher } from "./language-switcher";
 
 export async function SiteFooter() {
@@ -28,7 +29,7 @@ export async function SiteFooter() {
         <div className="grid gap-10 md:grid-cols-[1.2fr_1fr_1fr_1.3fr_1fr]">
           <div>
             <Link href="/" className="flex items-center gap-2">
-              <span className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-[#f0a8c0] to-[#9a7bd6] text-sm font-bold text-white">S</span>
+              <Logo className="size-8" />
               <span className="font-heading text-[18px] font-bold text-white">Schedulemode</span>
             </Link>
             <p className="mt-3 max-w-[220px] text-[13px] leading-relaxed text-white/55">{d.footer.tagline}</p>
