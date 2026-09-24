@@ -157,8 +157,14 @@ export function ChatApp() {
         setStatus("Outfits kiezen…");
         break;
       case "plan":
-        setLive((parts) => [...(parts ?? []), { kind: "plan", plan: event.plan }]);
-        setStatus(null);
+        // Partial plans replace each other as the card fills in; the final one replaces the last partial.
+        setLive((parts) => {
+          const p = [...(parts ?? [])];
+          if (p[p.length - 1]?.kind === "plan") p[p.length - 1] = { kind: "plan", plan: event.plan };
+          else p.push({ kind: "plan", plan: event.plan });
+          return p;
+        });
+        setStatus(event.partial ? "Outfits samenstellen…" : null);
         break;
       case "error":
         setError(event.message);

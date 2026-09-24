@@ -74,3 +74,12 @@ describe("trip planner", () => {
     expect(none).not.toContain("schoenen gekozen");
   });
 });
+
+describe("sanitizePlan on a half-written card", () => {
+  it("renders what is there and drops half-typed ids", () => {
+    const plan = sanitizePlan({ title: "Porto", days: [{ label: "Dag 1", looks: [{ moment: "Overdag", item_ids: ["real", "rea"] }, {}] }] }, new Set(["real"]));
+    expect(plan.days[0].looks[0].item_ids).toEqual(["real"]);
+    expect(plan.days[0].looks[1]).toMatchObject({ moment: "", item_ids: [], why: "" });
+    expect(plan.packing).toBeUndefined();
+  });
+});

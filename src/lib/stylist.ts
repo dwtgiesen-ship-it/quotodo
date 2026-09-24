@@ -16,10 +16,11 @@ const INSTRUCTIONS = `Je bent de persoonlijke stylist én reisplanner van de eig
 Dani vraagt dingen als "morgen 3 dagen naar Porto Cervo, wat heb ik nodig?" of "ik ga vanavond uit eten in Monaco, wat trek ik aan?". Jij kiest concrete outfits uit Dani's eigen kast en maakt de paklijst.
 
 ## Werkwijze
-1. Zit er een plek en/of datum in de vraag? Roep dan EERST get_weather aan (ook voor "vandaag"/"vanavond"). Reken relatieve datums ("morgen", "dit weekend", "volgende week vrijdag") om met de datum van vandaag hieronder. Aantal dagen = aantal outfitdagen; reisdag telt mee.
+1. Zit er een plek en/of datum in de vraag? Roep dan EERST get_weather aan (ook voor "vandaag"/"vanavond"), tenzij je het weer voor die plek en dagen al eerder in dit gesprek hebt opgehaald. Reken relatieve datums ("morgen", "dit weekend", "volgende week vrijdag") om met de datum van vandaag hieronder. Aantal dagen = aantal outfitdagen; reisdag telt mee.
 2. Stel outfits samen met stukken uit de kast hieronder, via hun id. Doe nooit alsof iets in de kast zit dat er niet is. Elke look moet wél compleet zijn: ontbreekt een onderdeel (bijv. er zit nog geen broek of short in de kast), zet dan in "missing" van die look wat erbij hoort, kort en concreet ("Beige linnen broek", "Navy chino-short"). Zet wat Dani echt moet kopen of nog moet toevoegen ook in "gaps".
 3. Toon je advies ALTIJD met de tool show_outfits — die laat Dani de foto's zien. show_outfits is je laatste stap: daarna is je beurt voorbij. Zet de kern en eventuele aannames in "intro"; schrijf er geen losse chattekst omheen.
-4. Ontbreekt er echt cruciale info (bijv. geen bestemming), vraag het dan kort. Anders: maak redelijke aannames, noem ze in de intro, en lever direct.
+4. Vraagt Dani om een andere look of om één stuk te wisselen: toon met show_outfits alleen de aangepaste look (één dag met die ene look, zonder paklijst), niet het hele plan opnieuw. Bij één stuk wisselen blijft de rest van de look hetzelfde.
+5. Ontbreekt er echt cruciale info (bijv. geen bestemming), vraag het dan kort. Anders: maak redelijke aannames, noem ze in de intro, en lever direct.
 
 ## Opbouw van een reisplan
 - Standaard maak je per reisdag precies 2 looks (3 dagen = 6 outfits), tenzij Dani iets anders vraagt:
@@ -89,6 +90,9 @@ const TOOLS: Tool[] = [
   },
   {
     name: "show_outfits",
+    // Stream the input as it's written, so the card fills in look by look.
+    // The input is then unvalidated; sanitizePlan() is the guard.
+    eager_input_streaming: true,
     description:
       "Toont Dani het outfitplan als visuele kaart met de foto's uit de kast, plus de paklijst. Gebruik dit voor elk concreet kledingadvies.",
     input_schema: {
@@ -254,8 +258,17 @@ export async function* runStylist(history: Msg[], items: WardrobeItem[]): AsyncG
       messages: history,
     });
 
+    let lastPreview = 0;
     for await (const event of stream) {
-      if (event.type === "content_block_start" && event.content_block.type === "tool_use") {
+      if (event.type === "content_block_delta" && event.delta.type === "input_json_delta") {
+        // Show the outfit card while it's being written, a few times a second.
+        const block = stream.currentMessage?.content[event.index];
+        if (block?.type === "tool_use" && block.name === "show_outfits" && Date.now() - lastPreview > 300) {
+          lastPreview = Date.now();
+          const partial = readInput(block);
+          if (partial) yield { type: "plan", plan: sanitizePlan(partial, validIds), partial: true };
+        }
+      } else if (event.type === "content_block_start" && event.content_block.type === "tool_use") {
         yield { type: "status", text: event.content_block.name === "show_outfits" ? "Outfits samenstellen…" : "Even kijken…" };
       } else if (event.type === "content_block_start" && event.content_block.type === "fallback") {
         // A fallback model continues the answer; drop the partial text the client already showed.
@@ -266,7 +279,17 @@ export async function* runStylist(history: Msg[], items: WardrobeItem[]): AsyncG
     }
 
     const message = await stream.finalMessage();
-    history.push({ role: "assistant", content: message.content as Msg["content"] });
+    // Tool inputs are parsed lazily from streamed JSON; freeze them into plain
+    // objects so the history always serializes (a broken input becomes {}).
+    const content = message.content.map((b) => (b.type === "tool_use" ? withPlainInput(b) : b)) as typeof message.content;
+
+    if (message.stop_reason === "max_tokens") {
+      // A cut-off tool call has no result, which would break the next turn: keep only a note.
+      history.push({ role: "assistant", content: [{ type: "text", text: "(Dit antwoord werd te lang en is afgebroken.)" }] });
+      yield { type: "error", message: "Het antwoord werd te lang. Probeer het met minder dagen of vraag het nog eens." };
+      return;
+    }
+    history.push({ role: "assistant", content: content as Msg["content"] });
 
     if (message.stop_reason === "refusal") {
       yield { type: "text", text: "\n\nDaar kan ik je helaas niet mee helpen." };
@@ -274,7 +297,7 @@ export async function* runStylist(history: Msg[], items: WardrobeItem[]): AsyncG
     }
     if (message.stop_reason === "pause_turn") continue;
 
-    const toolUses = message.content.filter((b): b is Anthropic.Beta.Messages.BetaToolUseBlock => b.type === "tool_use");
+    const toolUses = content.filter((b): b is Anthropic.Beta.Messages.BetaToolUseBlock => b.type === "tool_use");
     if (message.stop_reason !== "tool_use" || toolUses.length === 0) return;
 
     const results: Anthropic.Beta.Messages.BetaToolResultBlockParam[] = [];
@@ -322,6 +345,25 @@ export function tripInstructions(trip: TripRequest, items: WardrobeItem[]): stri
   }
   lines.push("</reisplanner>");
   return lines.join("\n");
+}
+
+/** A tool call's input as an object, or null while/if the streamed JSON can't be read. */
+function readInput(block: { input: unknown }): Record<string, unknown> | null {
+  try {
+    const input = block.input;
+    return input && typeof input === "object" ? (input as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Copy of a tool_use block with its lazily parsed input replaced by a plain object (never throws). */
+function withPlainInput(block: object): object {
+  const copy: Record<string, unknown> = {};
+  // Not a spread: that would read the lazy `input` getter, which throws on broken JSON.
+  for (const key of Object.keys(block)) if (key !== "input") copy[key] = (block as Record<string, unknown>)[key];
+  copy.input = readInput(block as { input: unknown }) ?? {};
+  return copy;
 }
 
 /** A short chat title from the first question. */

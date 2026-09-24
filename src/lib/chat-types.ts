@@ -28,7 +28,8 @@ export type StylistEvent =
   | { type: "text"; text: string }
   | { type: "reset" }
   | { type: "weather"; report: WeatherReport }
-  | { type: "plan"; plan: OutfitPlan }
+  /** partial: the card is still being written (streamed while the model generates it). */
+  | { type: "plan"; plan: OutfitPlan; partial?: boolean }
   | { type: "error"; message: string }
   | { type: "done" };
 

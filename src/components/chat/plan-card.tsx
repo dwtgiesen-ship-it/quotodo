@@ -43,6 +43,11 @@ export function PlanCard({
                 look={look}
                 items={items}
                 onAnother={onAsk && (() => onAsk(`Geef me een andere look voor ${day.label}, ${look.moment.toLowerCase()}${look.occasion ? ` (${look.occasion})` : ""}.`))}
+                onSwap={
+                  onAsk &&
+                  ((item) =>
+                    onAsk(`Wissel in de ${look.moment.toLowerCase()}-look van ${day.label} alleen de ${item.name} voor een ander stuk uit mijn kast. Laat de rest van de look staan.`))
+                }
               />
             ))}
           </div>
@@ -70,9 +75,21 @@ export function PlanCard({
   );
 }
 
-function LookRow({ look, items, onAnother }: { look: LookT; items: ItemMap; onAnother?: () => void }) {
+function LookRow({
+  look,
+  items,
+  onAnother,
+  onSwap,
+}: {
+  look: LookT;
+  items: ItemMap;
+  onAnother?: () => void;
+  onSwap?: (item: WardrobeItem) => void;
+}) {
   const pieces = (look.item_ids ?? []).map((id) => items.get(id)).filter((i): i is WardrobeItem => !!i);
   const missing = look.missing ?? [];
+  const [selected, setSelected] = useState<string | null>(null);
+  const selectedItem = pieces.find((p) => p.id === selected);
   return (
     <div>
       <div className="mb-2 flex items-baseline gap-2">
@@ -81,11 +98,25 @@ function LookRow({ look, items, onAnother }: { look: LookT; items: ItemMap; onAn
       </div>
       <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5">
         {pieces.map((item) => (
-          <figure key={item.id}>
+          <button
+            key={item.id}
+            type="button"
+            disabled={!onSwap}
+            onClick={() => setSelected((s) => (s === item.id ? null : item.id))}
+            className="text-left disabled:cursor-default"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imageUrl(item)} alt={item.name} loading="lazy" className="aspect-square w-full rounded-xl bg-bg2 object-cover" />
-            <figcaption className="mt-1 line-clamp-2 text-[11px] leading-tight text-ink2">{item.name}</figcaption>
-          </figure>
+            <img
+              src={imageUrl(item)}
+              alt={item.name}
+              loading="lazy"
+              className={cn(
+                "aspect-square w-full rounded-xl bg-bg2 object-cover ring-2 ring-offset-2 ring-offset-card transition",
+                selected === item.id ? "ring-ink" : "ring-transparent",
+              )}
+            />
+            <span className="mt-1 line-clamp-2 block text-[11px] leading-tight text-ink2">{item.name}</span>
+          </button>
         ))}
         {missing.map((name) => (
           <figure key={name}>
@@ -97,7 +128,21 @@ function LookRow({ look, items, onAnother }: { look: LookT; items: ItemMap; onAn
           </figure>
         ))}
       </div>
-      {pieces.length === 0 && missing.length === 0 && <p className="text-sm text-muted">Geen stukken gevonden in je kast.</p>}
+      {pieces.length === 0 && missing.length === 0 && look.why && <p className="text-sm text-muted">Geen stukken gevonden in je kast.</p>}
+      {selectedItem && onSwap && (
+        <div className="mt-2 flex items-center gap-2 rounded-2xl bg-bg px-3 py-2">
+          <span className="min-w-0 flex-1 truncate text-sm">{selectedItem.name}</span>
+          <button
+            onClick={() => {
+              setSelected(null);
+              onSwap(selectedItem);
+            }}
+            className="flex shrink-0 items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-bg"
+          >
+            <RefreshCw className="size-3" /> Wissel dit stuk
+          </button>
+        </div>
+      )}
       <p className="mt-2 text-sm leading-relaxed text-ink2">{look.why}</p>
       {look.tip && (
         <p className="mt-1 flex gap-1.5 text-sm text-muted">
