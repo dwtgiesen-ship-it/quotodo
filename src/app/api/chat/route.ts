@@ -1,17 +1,17 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
-import { runStylist, titleFrom } from "@/lib/stylist";
+import { runStylist, titleFrom, tripInstructions } from "@/lib/stylist";
 import { itemSelect, toWardrobeItem } from "@/lib/wardrobe";
-import type { StylistEvent } from "@/lib/chat-types";
+import type { StylistEvent, TripRequest } from "@/lib/chat-types";
 
 // A multi-day plan (weather lookup + thinking + a big outfit card) can take a minute or two.
 export const maxDuration = 300;
 
 type Msg = Anthropic.Beta.Messages.BetaMessageParam;
 
-// Body: { chatId?: string, message: string }. Responds with NDJSON StylistEvents.
+// Body: { chatId?: string, message: string, trip?: TripRequest }. Responds with NDJSON StylistEvents.
 export async function POST(request: Request) {
-  const { chatId, message } = (await request.json().catch(() => ({}))) as { chatId?: string; message?: string };
+  const { chatId, message, trip } = (await request.json().catch(() => ({}))) as { chatId?: string; message?: string; trip?: TripRequest };
   const text = message?.trim();
   if (!text) return Response.json({ error: "Leeg bericht" }, { status: 400 });
 
@@ -20,11 +20,13 @@ export async function POST(request: Request) {
     : await prisma.chat.create({ data: { title: titleFrom(text) } });
   if (!chat) return Response.json({ error: "Gesprek niet gevonden" }, { status: 404 });
 
-  const history = (chat.messages as unknown as Msg[]) ?? [];
-  history.push({ role: "user", content: [{ type: "text", text }] });
-
   const rows = await prisma.item.findMany({ where: { archived: false }, select: itemSelect, orderBy: [{ category: "asc" }, { createdAt: "asc" }] });
   const items = rows.map(toWardrobeItem);
+
+  const history = (chat.messages as unknown as Msg[]) ?? [];
+  const content: Anthropic.Beta.Messages.BetaTextBlockParam[] = [{ type: "text", text }];
+  if (isTrip(trip)) content.push({ type: "text", text: tripInstructions(trip, items) });
+  history.push({ role: "user", content });
 
   const encoder = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
@@ -52,4 +54,16 @@ export async function POST(request: Request) {
   return new Response(body, {
     headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" },
   });
+}
+
+function isTrip(t: unknown): t is TripRequest {
+  const trip = t as TripRequest | undefined;
+  return (
+    !!trip &&
+    typeof trip.place === "string" &&
+    trip.place.trim() !== "" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(String(trip.start)) &&
+    typeof trip.days === "number" &&
+    Array.isArray(trip.shoeIds)
+  );
 }

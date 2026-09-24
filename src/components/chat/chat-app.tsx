@@ -2,10 +2,11 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, ArrowUp, History, Plus, Shirt, Trash2, X } from "lucide-react";
+import { ArrowRight, ArrowUp, History, Luggage, Plus, Shirt, Trash2, X } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { PlanCard, WeatherStrip } from "./plan-card";
-import type { StylistEvent, ViewMessage, ViewPart } from "@/lib/chat-types";
+import { TripPlanner } from "./trip-planner";
+import type { StylistEvent, TripRequest, ViewMessage, ViewPart } from "@/lib/chat-types";
 import type { WardrobeItem } from "@/lib/wardrobe";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +15,6 @@ type ChatSummary = { id: string; title: string; updatedAt: string };
 const SUGGESTIONS = [
   { label: "Wat trek ik vandaag aan?", prompt: "Wat trek ik vandaag aan?" },
   { label: "Vanavond uit eten", prompt: "Ik ga vanavond uit eten. Wat trek ik aan?" },
-  { label: "3 dagen Porto Cervo", prompt: "Morgen ga ik 3 dagen naar Porto Cervo. Welke outfits neem ik mee en wat moet er in de koffer?" },
   { label: "Weekend Parijs", prompt: "Volgend weekend 2 nachten Parijs: stad overdag, 's avonds een cocktailbar." },
 ];
 
@@ -30,6 +30,7 @@ export function ChatApp() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [drawer, setDrawer] = useState(false);
+  const [planner, setPlanner] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -77,9 +78,10 @@ export function ChatApp() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, live, status]);
 
-  async function send(text: string) {
+  async function send(text: string, trip?: TripRequest) {
     const message = text.trim();
     if (!message || busy) return;
+    setPlanner(false);
     setInput("");
     setError(null);
     setBusy(true);
@@ -92,7 +94,7 @@ export function ChatApp() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatId, message }),
+        body: JSON.stringify({ chatId, message, trip }),
       });
       if (!res.ok || !res.body) {
         const body = await res.json().catch(() => ({}));
@@ -182,6 +184,8 @@ export function ChatApp() {
         </button>
       </AppHeader>
 
+      {planner && <TripPlanner items={items} onClose={() => setPlanner(false)} onSubmit={(message, trip) => send(message, trip)} />}
+
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1">
         {/* Sidebar: previous chats */}
         <aside
@@ -248,7 +252,19 @@ export function ChatApp() {
                       </span>
                     </Link>
                   )}
-                  <div className="mt-8 divide-y divide-line overflow-hidden rounded-3xl border border-line bg-card">
+                  <button
+                    onClick={() => setPlanner(true)}
+                    className="mt-8 flex w-full items-center gap-4 rounded-3xl bg-ink px-5 py-5 text-left text-bg transition hover:opacity-90"
+                  >
+                    <Luggage className="size-6 shrink-0" />
+                    <span className="flex-1">
+                      <span className="block font-display text-lg">Plan een reis</span>
+                      <span className="block text-sm opacity-70">Kies je schoenen, ik maak 2 outfits per dag</span>
+                    </span>
+                    <ArrowRight className="size-5 opacity-70" />
+                  </button>
+                  <p className="eyebrow mb-2 mt-8">Of vraag direct</p>
+                  <div className="divide-y divide-line overflow-hidden rounded-3xl border border-line bg-card">
                     {SUGGESTIONS.map((s) => (
                       <button
                         key={s.label}
@@ -293,6 +309,15 @@ export function ChatApp() {
                 send(input);
               }}
             >
+              <button
+                type="button"
+                onClick={() => setPlanner(true)}
+                className="-ml-3 flex size-10 shrink-0 items-center justify-center rounded-full text-ink2 hover:bg-bg2"
+                aria-label="Reisplanner"
+                title="Reisplanner"
+              >
+                <Luggage className="size-5" />
+              </button>
               <textarea
                 ref={textareaRef}
                 value={input}

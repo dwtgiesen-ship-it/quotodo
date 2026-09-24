@@ -32,6 +32,23 @@ export type StylistEvent =
   | { type: "error"; message: string }
   | { type: "done" };
 
+/** A trip built in the planner: sent next to the visible question, turned into instructions on the server. */
+export type TripRequest = {
+  place: string;
+  /** YYYY-MM-DD */
+  start: string;
+  days: number;
+  /** Wardrobe ids of the shoes to build the outfits around (may be empty). */
+  shoeIds: string[];
+};
+
+/**
+ * User text blocks starting with this tag carry instructions for the stylist
+ * only (e.g. the trip planner's rules); they're kept in the history but never
+ * shown as a bubble.
+ */
+export const HIDDEN_TAG = "<reisplanner>";
+
 export type ViewPart =
   | { kind: "text"; text: string }
   | { kind: "weather"; report: WeatherReport }
@@ -59,7 +76,11 @@ export function buildView(history: RawMessage[]): ViewMessage[] {
   for (const msg of history) {
     const blocks: RawBlock[] = typeof msg.content === "string" ? [{ type: "text", text: msg.content }] : msg.content;
     if (msg.role === "user") {
-      const text = blocks.filter((b) => b.type === "text").map((b) => b.text ?? "").join("\n").trim();
+      const text = blocks
+        .filter((b) => b.type === "text" && !b.text?.startsWith(HIDDEN_TAG))
+        .map((b) => b.text ?? "")
+        .join("\n")
+        .trim();
       for (const b of blocks) {
         if (b.type === "tool_result" && !b.is_error && typeof b.content === "string" && b.content.startsWith("{")) {
           try {

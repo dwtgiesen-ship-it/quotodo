@@ -2,7 +2,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { anthropic, MODEL } from "./anthropic";
 import { getWeather } from "./weather";
 import { catalogLine, type WardrobeItem } from "./wardrobe";
-import type { OutfitPlan, StylistEvent } from "./chat-types";
+import { HIDDEN_TAG, type OutfitPlan, type StylistEvent, type TripRequest } from "./chat-types";
 
 type Msg = Anthropic.Beta.Messages.BetaMessageParam;
 type Tool = Anthropic.Beta.Messages.BetaTool;
@@ -22,11 +22,14 @@ Dani vraagt dingen als "morgen 3 dagen naar Porto Cervo, wat heb ik nodig?" of "
 4. Ontbreekt er echt cruciale info (bijv. geen bestemming), vraag het dan kort. Anders: maak redelijke aannames, noem ze in de intro, en lever direct.
 
 ## Opbouw van een reisplan
-- Per dag de momenten die om een eigen outfit vragen, bijv. "Overdag" (ontbijt, stad, lunch), "Strand" of "Boot", en "Avond" (uit eten). Reisdag: een comfortabele, nette reisoutfit. Strand/boot: zwemkleding + cover-up + slippers/sandalen.
+- Standaard maak je per reisdag precies 2 looks (3 dagen = 6 outfits), tenzij Dani iets anders vraagt:
+  - "Overdag": chill en comfortabel voor ochtend en middag. Bij ≥ 22°C een short met T-shirt, polo of overhemd; koeler een lichte broek. Gaat Dani naar strand of boot, voeg zwemkleding als extra stuk toe aan deze look.
+  - "Avond": luxe, voor uit eten. Lange broek of nette pantalon, overhemd of fijn knit, de netste schoenen die bij die dag horen, riem; een laag bij < 22°C of wind.
+  De reisdag telt mee als dag; maak de overdag-look dan ook reisvriendelijk.
 - Elke look is compleet: bovenstuk, onderstuk (of jurk), schoenen (uit de kast of via "missing"), en waar beschikbaar riem, tas, zonnebril, horloge/sieraden. Laag voor de avond (knit, overshirt, blazer) bij < 22°C of wind.
-- Niet elk dagdeel een nieuwe outfit: ochtend en middag is meestal dezelfde look. Een nieuwe look alleen als het moment erom vraagt (strand/boot, diner). Meestal 1-2 looks per dag.
 - Denk als een capsule-garderobe: zo weinig mogelijk stuks die onderling veel combinaties geven. Hergebruik broeken, schoenen en jassen slim over dagen; wissel vooral bovenstukken.
-- Richtlijn voor aantallen (bij 3 dagen): 4-5 bovenstukken, 2-3 onderstukken, 1 laag voor de avond, 2-3 paar schoenen (dagelijks, avond, strand). Schaal mee met de duur, maar ga er nooit ruim overheen. Een bovenstuk mag twee keer terugkomen.
+- Richtlijn voor aantallen (bij 3 dagen): 4-6 bovenstukken, 2-3 onderstukken (short(s) voor overdag, lange broek(en) voor de avond), 1 laag voor de avond, 2-3 paar schoenen. Schaal mee met de duur, maar ga er nooit ruim overheen. Een bovenstuk mag twee keer terugkomen.
+- Staat er in Dani's bericht een ${HIDDEN_TAG}-blok (uit de reisplanner in de app), volg dat dan precies: daarin staan bestemming, data en de schoenen waar je de outfits omheen bouwt.
 - De koffer wordt automatisch samengesteld uit alle looks: alles wat in een look staat gaat mee, niets anders.
 - "packing.essentials" = alles wat niet in de kast-foto's zit, in groepen: "Documenten" (paspoort/ID, rijbewijs, boardingpass, verzekeringspas), "Geld" (pinpas, creditcard, wat contant in de lokale valuta), "Elektronica" (telefoonoplader, powerbank, oordopjes, stekkeradapter als het land een ander stopcontact heeft), "Verzorging" (toilettas, SPF, aftersun, medicijnen, deo, parfum), "Basics" (ondergoed en sokken/no-show sokken met aantallen, pyjama), "Overig" (zonnebril, sleutels, strandlaken, opvouwbare tas…). Pas aan op bestemming, weer en duur.
 - Voor één moment ("vanavond", "morgen naar kantoor"): één dag met 1 hoofdlook en hooguit 1 alternatief; "packing" = wat mee in de tas/zakken (telefoon, portemonnee, sleutels, lipbalsem…), zonder kaststukken tenzij een extra laag.
@@ -293,6 +296,32 @@ export async function* runStylist(history: Msg[], items: WardrobeItem[]): AsyncG
     // question simply follows it.
     if (shown) return;
   }
+}
+
+/**
+ * The hidden instructions that go with a trip from the planner. Built on the
+ * server from validated ids, so the model sees exact shoe ids and names.
+ */
+export function tripInstructions(trip: TripRequest, items: WardrobeItem[]): string {
+  const shoes = trip.shoeIds.map((id) => items.find((i) => i.id === id)).filter((i): i is WardrobeItem => !!i);
+  const days = Math.min(14, Math.max(1, Math.round(trip.days)));
+  const lines = [
+    HIDDEN_TAG,
+    `Bestemming: ${trip.place.trim().slice(0, 80)}`,
+    `Eerste dag: ${trip.start}, aantal dagen: ${days} (roep get_weather aan voor deze plek en periode)`,
+    `Maak precies ${days * 2} outfits: per dag één "Overdag"-look (chill) en één "Avond"-look (luxe, uit eten).`,
+  ];
+  if (shoes.length) {
+    lines.push(
+      `Dani heeft deze ${shoes.length} paar schoenen gekozen. Gebruik alleen deze schoenen, geen andere:`,
+      ...shoes.map((s) => `- [${s.id}] ${s.name}`),
+      shoes.length === days
+        ? "Elk paar hoort bij één dag en wordt die dag in beide looks gedragen (overdag én avond). Bouw beide looks rond die schoen; kies de volgorde van de dagen zelf (bijv. het comfortabelste paar op de reisdag)."
+        : `Verdeel de schoenen zo eerlijk mogelijk over de dagen: elke dag krijgt één paar dat die dag in beide looks gedragen wordt, en elk paar komt minstens één dag aan de beurt.`,
+    );
+  }
+  lines.push("</reisplanner>");
+  return lines.join("\n");
 }
 
 /** A short chat title from the first question. */

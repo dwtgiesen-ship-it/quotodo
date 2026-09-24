@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buildView } from "./chat-types";
-import { sanitizePlan } from "./stylist";
+import { buildView, HIDDEN_TAG } from "./chat-types";
+import { sanitizePlan, tripInstructions } from "./stylist";
+import type { WardrobeItem } from "./wardrobe";
 
 describe("buildView", () => {
   it("folds tool results into the assistant bubble and hides tool plumbing", () => {
@@ -43,5 +44,33 @@ describe("sanitizePlan", () => {
       new Set(["real"]),
     );
     expect(plan.days[0].looks[0].missing).toEqual(["Beige linnen broek"]);
+  });
+});
+
+describe("trip planner", () => {
+  const item = (id: string, name: string) => ({ id, name }) as unknown as WardrobeItem;
+  const wardrobe = [item("s1", "Camel suède loafers"), item("s2", "Taupe sneaker"), item("s3", "Cognac H-slippers")];
+
+  it("hides the planner instructions from the chat bubbles", () => {
+    const view = buildView([
+      { role: "user", content: [{ type: "text", text: "3 dagen Porto Cervo" }, { type: "text", text: `${HIDDEN_TAG}\nBestemming: Porto Cervo\n</reisplanner>` }] },
+    ]);
+    expect(view).toEqual([{ role: "user", parts: [{ kind: "text", text: "3 dagen Porto Cervo" }] }]);
+  });
+
+  it("asks for two looks per day around the chosen shoes, ignoring unknown ids", () => {
+    const text = tripInstructions({ place: "Porto Cervo", start: "2026-09-25", days: 3, shoeIds: ["s1", "nope", "s3", "s2"] }, wardrobe);
+    expect(text.startsWith(HIDDEN_TAG)).toBe(true);
+    expect(text).toContain("precies 6 outfits");
+    expect(text).toContain("[s1] Camel suède loafers");
+    expect(text).not.toContain("nope");
+    expect(text).toContain("Elk paar hoort bij één dag");
+  });
+
+  it("spreads shoes over the days when the counts differ, and works without shoes", () => {
+    expect(tripInstructions({ place: "Parijs", start: "2026-10-02", days: 3, shoeIds: ["s1", "s2"] }, wardrobe)).toContain("Verdeel de schoenen");
+    const none = tripInstructions({ place: "Parijs", start: "2026-10-02", days: 2, shoeIds: [] }, wardrobe);
+    expect(none).toContain("precies 4 outfits");
+    expect(none).not.toContain("schoenen gekozen");
   });
 });
