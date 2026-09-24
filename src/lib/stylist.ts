@@ -7,7 +7,7 @@ import type { OutfitPlan, StylistEvent } from "./chat-types";
 type Msg = Anthropic.Beta.Messages.BetaMessageParam;
 type Tool = Anthropic.Beta.Messages.BetaTool;
 
-const EFFORT = (process.env.KOFFERKLAAR_EFFORT as "low" | "medium" | "high" | "xhigh" | undefined) || "medium";
+const EFFORT = (process.env.KOFFERKLAAR_EFFORT as "low" | "medium" | "high" | "xhigh" | undefined) || "low";
 
 // ── Instructions ────────────────────────────────────────────────────────────
 // Kept byte-stable (no dates, no wardrobe) so it caches; the wardrobe and the
@@ -17,15 +17,17 @@ Dani vraagt dingen als "morgen 3 dagen naar Porto Cervo, wat heb ik nodig?" of "
 
 ## Werkwijze
 1. Zit er een plek en/of datum in de vraag? Roep dan EERST get_weather aan (ook voor "vandaag"/"vanavond"). Reken relatieve datums ("morgen", "dit weekend", "volgende week vrijdag") om met de datum van vandaag hieronder. Aantal dagen = aantal outfitdagen; reisdag telt mee.
-2. Stel outfits samen uitsluitend met stukken uit de kast hieronder, via hun id. Verzin geen kleding die er niet is. Mist er iets echt nodigs (bijv. geen zwembroek voor een strandreis, geen nette schoenen voor een sterrenrestaurant), benoem dat in "gaps" met een concreet koopadvies.
+2. Stel outfits samen met stukken uit de kast hieronder, via hun id. Doe nooit alsof iets in de kast zit dat er niet is. Elke look moet wél compleet zijn: ontbreekt een onderdeel (bijv. er zit nog geen broek of short in de kast), zet dan in "missing" van die look wat erbij hoort, kort en concreet ("Beige linnen broek", "Navy chino-short"). Zet wat Dani echt moet kopen of nog moet toevoegen ook in "gaps".
 3. Toon je advies ALTIJD met de tool show_outfits — die laat Dani de foto's zien. Daarna schrijf je nog maximaal 3-4 korte zinnen in de chat (de kern + eventueel een vraag). Herhaal niet alles wat al in de kaart staat.
 4. Ontbreekt er echt cruciale info (bijv. geen bestemming), vraag het dan kort. Anders: maak redelijke aannames, noem ze in de intro, en lever direct.
 
 ## Opbouw van een reisplan
-- Per dag de momenten die Dani die dag heeft, meestal: "Ochtend" (ontbijt, stad, reizen), "Middag" (strand, boot, lunch, sightseeing) en "Avond" (uit eten). Reisdag: een comfortabele, nette reisoutfit. Strand/boot: zwemkleding + cover-up + slippers/sandalen.
-- Elke look is compleet: bovenstuk, onderstuk (of jurk), schoenen, en waar beschikbaar riem, tas, zonnebril, horloge/sieraden. Laag voor de avond (knit, overshirt, blazer) bij < 22°C of wind.
-- Denk als een capsule-garderobe: zo weinig mogelijk stuks die onderling veel combinaties geven. Hergebruik broeken, schoenen en jassen slim over dagen; wissel vooral bovenstukken. Voor een korte trip: ± 2-3 paar schoenen (dagelijks, avond, strand).
-- "packing.item_ids" = alle kaststukken die mee moeten (dus de unie van alle looks). Houd reserve-onderdelen beperkt en logisch.
+- Per dag de momenten die om een eigen outfit vragen, bijv. "Overdag" (ontbijt, stad, lunch), "Strand" of "Boot", en "Avond" (uit eten). Reisdag: een comfortabele, nette reisoutfit. Strand/boot: zwemkleding + cover-up + slippers/sandalen.
+- Elke look is compleet: bovenstuk, onderstuk (of jurk), schoenen (uit de kast of via "missing"), en waar beschikbaar riem, tas, zonnebril, horloge/sieraden. Laag voor de avond (knit, overshirt, blazer) bij < 22°C of wind.
+- Niet elk dagdeel een nieuwe outfit: ochtend en middag is meestal dezelfde look. Een nieuwe look alleen als het moment erom vraagt (strand/boot, diner). Meestal 1-2 looks per dag.
+- Denk als een capsule-garderobe: zo weinig mogelijk stuks die onderling veel combinaties geven. Hergebruik broeken, schoenen en jassen slim over dagen; wissel vooral bovenstukken.
+- Richtlijn voor aantallen (bij 3 dagen): 4-5 bovenstukken, 2-3 onderstukken, 1 laag voor de avond, 2-3 paar schoenen (dagelijks, avond, strand). Schaal mee met de duur, maar ga er nooit ruim overheen. Een bovenstuk mag twee keer terugkomen.
+- De koffer wordt automatisch samengesteld uit alle looks: alles wat in een look staat gaat mee, niets anders.
 - "packing.essentials" = alles wat niet in de kast-foto's zit, in groepen: "Documenten" (paspoort/ID, rijbewijs, boardingpass, verzekeringspas), "Geld" (pinpas, creditcard, wat contant in de lokale valuta), "Elektronica" (telefoonoplader, powerbank, oordopjes, stekkeradapter als het land een ander stopcontact heeft), "Verzorging" (toilettas, SPF, aftersun, medicijnen, deo, parfum), "Basics" (ondergoed en sokken/no-show sokken met aantallen, pyjama), "Overig" (zonnebril, sleutels, strandlaken, opvouwbare tas…). Pas aan op bestemming, weer en duur.
 - Voor één moment ("vanavond", "morgen naar kantoor"): één dag met 1 hoofdlook en hooguit 1 alternatief; "packing" = wat mee in de tas/zakken (telefoon, portemonnee, sleutels, lipbalsem…), zonder kaststukken tenzij een extra laag.
 
@@ -113,6 +115,11 @@ const TOOLS: Tool[] = [
                     moment: { type: "string", description: "Ochtend, Middag, Avond, Strand, Reis, Hele dag…" },
                     occasion: { type: "string", description: "Wat Dani dan doet, bijv. 'Diner bij de haven'." },
                     item_ids: { type: "array", items: { type: "string" }, description: "Ids uit de kast, van boven naar beneden: bovenstuk, onderstuk, schoenen, accessoires." },
+                    missing: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "Onderdelen die deze look compleet maken maar niet in de kast zitten, bijv. 'Beige linnen broek'. Leeg als alles in de kast zit.",
+                    },
                     why: { type: "string", description: "Waarom dit werkt (kleur, weer, dresscode) — 1-2 zinnen." },
                     tip: { type: "string", description: "Optionele stylingtip: mouwen oprollen, overhemd half ingestopt, geen sokken…" },
                   },
@@ -124,9 +131,8 @@ const TOOLS: Tool[] = [
         packing: {
           type: "object",
           additionalProperties: false,
-          required: ["item_ids", "essentials"],
+          required: ["essentials"],
           properties: {
-            item_ids: { type: "array", items: { type: "string" }, description: "Alle kaststukken die in de koffer moeten." },
             essentials: {
               type: "array",
               items: {
@@ -203,13 +209,14 @@ export function sanitizePlan(input: Record<string, unknown>, validIds: Set<strin
         moment: String(l.moment ?? ""),
         occasion: l.occasion,
         item_ids: keep(l.item_ids),
+        missing: Array.isArray(l.missing) ? l.missing.filter((m): m is string => typeof m === "string" && m.trim() !== "") : undefined,
         why: String(l.why ?? ""),
         tip: l.tip,
       })),
     })),
     packing: plan.packing
       ? {
-          item_ids: keep(plan.packing.item_ids),
+          item_ids: keep(plan.packing.item_ids ?? []),
           essentials: Array.isArray(plan.packing.essentials) ? plan.packing.essentials : [],
         }
       : undefined,

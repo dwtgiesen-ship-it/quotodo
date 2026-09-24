@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Droplets, Lightbulb, Luggage, ShoppingBag, Sunset, Waves, Wind } from "lucide-react";
-import { imageUrl, type WardrobeItem } from "@/lib/wardrobe";
+import { Check, Droplets, Lightbulb, Luggage, Plus, ShoppingBag, Sunset, Waves, Wind } from "lucide-react";
+import { CATEGORIES, imageUrl, type WardrobeItem } from "@/lib/wardrobe";
 import type { OutfitPlan } from "@/lib/chat-types";
 import type { WeatherReport } from "@/lib/weather";
 import { cn } from "@/lib/utils";
@@ -47,7 +47,7 @@ export function PlanCard({ plan, items, storageKey }: { plan: OutfitPlan; items:
         ))}
       </div>
 
-      {plan.packing && <Packing packing={plan.packing} items={items} storageKey={storageKey} />}
+      {plan.packing && <Packing plan={plan} packing={plan.packing} items={items} storageKey={storageKey} />}
 
       {plan.gaps && plan.gaps.length > 0 && (
         <div className="border-t border-line bg-accent-soft/50 px-5 py-4">
@@ -81,7 +81,16 @@ function LookRow({ look, items }: { look: OutfitPlan["days"][number]["looks"][nu
             <figcaption className="mt-1 line-clamp-2 text-[11px] leading-tight text-ink2">{item.name}</figcaption>
           </figure>
         ))}
-        {pieces.length === 0 && <p className="text-sm text-muted">Geen stukken gevonden in je kast.</p>}
+        {(look.missing ?? []).map((name) => (
+          <figure key={name} className="w-24 shrink-0 sm:w-28">
+            <div className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line bg-bg2/40 p-2 text-center">
+              <Plus className="size-4 text-muted" />
+              <span className="text-[10px] leading-tight text-muted">nog niet in je kast</span>
+            </div>
+            <figcaption className="mt-1 line-clamp-2 text-[11px] leading-tight text-ink2">{name}</figcaption>
+          </figure>
+        ))}
+        {pieces.length === 0 && !look.missing?.length && <p className="text-sm text-muted">Geen stukken gevonden in je kast.</p>}
       </div>
       <p className="mt-2 text-sm text-ink2">{look.why}</p>
       {look.tip && (
@@ -93,7 +102,7 @@ function LookRow({ look, items }: { look: OutfitPlan["days"][number]["looks"][nu
   );
 }
 
-function Packing({ packing, items, storageKey }: { packing: NonNullable<OutfitPlan["packing"]>; items: ItemMap; storageKey: string }) {
+function Packing({ plan, packing, items, storageKey }: { plan: OutfitPlan; packing: NonNullable<OutfitPlan["packing"]>; items: ItemMap; storageKey: string }) {
   // Plans only render client-side (after the chat is fetched), so reading
   // localStorage in the initializer can't cause a hydration mismatch.
   const [checked, setChecked] = useState<Set<string>>(() => {
@@ -117,10 +126,18 @@ function Packing({ packing, items, storageKey }: { packing: NonNullable<OutfitPl
       return next;
     });
 
-  const clothes = useMemo(
-    () => (packing.item_ids ?? []).map((id) => items.get(id)).filter((i): i is WardrobeItem => !!i),
-    [packing.item_ids, items],
-  );
+  // The suitcase is exactly what the looks wear. Older plans without looks
+  // fall back to the list the stylist wrote itself.
+  const clothes = useMemo(() => {
+    const fromLooks = (plan.days ?? []).flatMap((d) => (d.looks ?? []).flatMap((l) => l.item_ids ?? []));
+    const ids = [...new Set(fromLooks.length ? fromLooks : (packing.item_ids ?? []))];
+    return ids.map((id) => items.get(id)).filter((i): i is WardrobeItem => !!i);
+  }, [plan.days, packing.item_ids, items]);
+  const groups = useMemo(() => {
+    const byCategory: { label: string; items: WardrobeItem[] }[] = CATEGORIES.map((c) => ({ label: c.label, items: clothes.filter((i) => i.category === c.id) }));
+    byCategory.push({ label: "Overig", items: clothes.filter((i) => !CATEGORIES.some((c) => c.id === i.category)) });
+    return byCategory.filter((g) => g.items.length > 0);
+  }, [clothes]);
   const total = clothes.length + (packing.essentials ?? []).reduce((n, g) => n + (g.items?.length ?? 0), 0);
   const done = [...checked].length;
 
@@ -137,30 +154,35 @@ function Packing({ packing, items, storageKey }: { packing: NonNullable<OutfitPl
         )}
       </div>
 
-      {clothes.length > 0 && (
-        <div className="mb-4 grid grid-cols-4 gap-2 sm:grid-cols-6">
-          {clothes.map((item) => {
-            const key = `item:${item.id}`;
-            const on = checked.has(key);
-            return (
-              <button key={item.id} onClick={() => toggle(key)} className="text-left">
-                <div className="relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageUrl(item)} alt={item.name} loading="lazy" className={cn("aspect-square w-full rounded-xl bg-bg2 object-cover transition", on && "opacity-40")} />
-                  {on && (
-                    <span className="absolute inset-0 flex items-center justify-center">
-                      <span className="rounded-full bg-olive p-1 text-white">
-                        <Check className="size-4" />
+      {groups.map((group) => (
+        <div key={group.label} className="mb-4">
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+            {group.label} · {group.items.length}
+          </p>
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+            {group.items.map((item) => {
+              const key = `item:${item.id}`;
+              const on = checked.has(key);
+              return (
+                <button key={item.id} onClick={() => toggle(key)} className="text-left">
+                  <div className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imageUrl(item)} alt={item.name} loading="lazy" className={cn("aspect-square w-full rounded-xl bg-bg2 object-cover transition", on && "opacity-40")} />
+                    {on && (
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="rounded-full bg-olive p-1 text-white">
+                          <Check className="size-4" />
+                        </span>
                       </span>
-                    </span>
-                  )}
-                </div>
-                <span className={cn("mt-1 line-clamp-2 text-[11px] leading-tight text-ink2", on && "line-through opacity-60")}>{item.name}</span>
-              </button>
-            );
-          })}
+                    )}
+                  </div>
+                  <span className={cn("mt-1 line-clamp-2 text-[11px] leading-tight text-ink2", on && "line-through opacity-60")}>{item.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      )}
+      ))}
 
       <div className="grid gap-4 sm:grid-cols-2">
         {(packing.essentials ?? []).map((group) => (

@@ -5,6 +5,8 @@ export type Look = {
   moment: string;
   occasion?: string;
   item_ids: string[];
+  /** Pieces the look needs that aren't in the wardrobe (yet). */
+  missing?: string[];
   why: string;
   tip?: string;
 };
@@ -14,7 +16,8 @@ export type OutfitPlan = {
   intro?: string;
   weather_note?: string;
   days: { label: string; weather?: string; looks: Look[] }[];
-  packing?: { item_ids: string[]; essentials: { group: string; items: string[] }[] };
+  /** item_ids is only set on older plans; the suitcase is now derived from the looks. */
+  packing?: { item_ids?: string[]; essentials: { group: string; items: string[] }[] };
   gaps?: string[];
 };
 

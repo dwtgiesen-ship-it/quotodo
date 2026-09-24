@@ -33,4 +33,15 @@ describe("sanitizePlan", () => {
     expect(plan.days[0].looks[0].item_ids).toEqual(["real"]);
     expect(plan.packing?.item_ids).toEqual(["real"]);
   });
+
+  it("keeps the pieces a look still misses, dropping blanks", () => {
+    const plan = sanitizePlan(
+      {
+        title: "Test",
+        days: [{ label: "Dag 1", looks: [{ moment: "Avond", item_ids: ["real"], missing: ["Beige linnen broek", " ", 3], why: "x" }] }],
+      },
+      new Set(["real"]),
+    );
+    expect(plan.days[0].looks[0].missing).toEqual(["Beige linnen broek"]);
+  });
 });
