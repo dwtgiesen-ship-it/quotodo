@@ -1,5 +1,5 @@
 import { anthropic, MODEL } from "./anthropic";
-import { CATEGORY_IDS, type ItemFields } from "./wardrobe";
+import { CATEGORIES, CATEGORY_IDS, type ItemFields } from "./wardrobe";
 
 const SCHEMA = {
   type: "object",
@@ -19,7 +19,14 @@ const SCHEMA = {
   ],
   properties: {
     name: { type: "string", description: "Korte Nederlandse naam, bijv. 'Wit linnen overhemd' of 'Bruine suède loafers'." },
-    category: { type: "string", enum: CATEGORY_IDS },
+    category: {
+      type: "string",
+      enum: CATEGORY_IDS,
+      description:
+        `Kies op basis van het soort kledingstuk, niet de stof: ${CATEGORIES.map((c) => `${c.id} = ${c.label}`).join(", ")}. ` +
+        "T-shirts, tanktops, polo's, blouses en overhemden zijn altijd 'top', ook als ze van tricot of jersey zijn. " +
+        "'knit' alleen voor echte truien, sweaters, cardigans en vesten.",
+    },
     subcategory: { type: "string", description: "Bijv. polo, chino, sneaker, loafer, bermuda, blazer, riem, zonnebril." },
     colors: { type: "array", items: { type: "string" }, description: "Hoofdkleur eerst, in het Nederlands, zo precies mogelijk (ecru, navy, cognac, salie…)." },
     pattern: { type: "string", description: "effen, streep, ruit, print… " },
