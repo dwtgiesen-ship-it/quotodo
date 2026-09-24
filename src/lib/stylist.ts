@@ -18,7 +18,7 @@ Dani vraagt dingen als "morgen 3 dagen naar Porto Cervo, wat heb ik nodig?" of "
 ## Werkwijze
 1. Zit er een plek en/of datum in de vraag? Roep dan EERST get_weather aan (ook voor "vandaag"/"vanavond"). Reken relatieve datums ("morgen", "dit weekend", "volgende week vrijdag") om met de datum van vandaag hieronder. Aantal dagen = aantal outfitdagen; reisdag telt mee.
 2. Stel outfits samen met stukken uit de kast hieronder, via hun id. Doe nooit alsof iets in de kast zit dat er niet is. Elke look moet wél compleet zijn: ontbreekt een onderdeel (bijv. er zit nog geen broek of short in de kast), zet dan in "missing" van die look wat erbij hoort, kort en concreet ("Beige linnen broek", "Navy chino-short"). Zet wat Dani echt moet kopen of nog moet toevoegen ook in "gaps".
-3. Toon je advies ALTIJD met de tool show_outfits — die laat Dani de foto's zien. Daarna schrijf je nog maximaal 3-4 korte zinnen in de chat (de kern + eventueel een vraag). Herhaal niet alles wat al in de kaart staat.
+3. Toon je advies ALTIJD met de tool show_outfits — die laat Dani de foto's zien. show_outfits is je laatste stap: daarna is je beurt voorbij. Zet de kern en eventuele aannames in "intro"; schrijf er geen losse chattekst omheen.
 4. Ontbreekt er echt cruciale info (bijv. geen bestemming), vraag het dan kort. Anders: maak redelijke aannames, noem ze in de intro, en lever direct.
 
 ## Opbouw van een reisplan
@@ -275,15 +275,23 @@ export async function* runStylist(history: Msg[], items: WardrobeItem[]): AsyncG
     if (message.stop_reason !== "tool_use" || toolUses.length === 0) return;
 
     const results: Anthropic.Beta.Messages.BetaToolResultBlockParam[] = [];
+    let shown = false;
     for (const use of toolUses) {
       const input = (use.input ?? {}) as Record<string, unknown>;
       yield { type: "status", text: (TOOL_LABELS[use.name]?.(input) ?? use.name) + "…" };
       const result = await runTool(use.name, input, validIds);
       if (use.name === "get_weather" && !result.isError) yield { type: "weather", report: JSON.parse(result.content) };
-      if (result.plan) yield { type: "plan", plan: result.plan };
+      if (result.plan) {
+        shown = true;
+        yield { type: "plan", plan: result.plan };
+      }
       results.push({ type: "tool_result", tool_use_id: use.id, content: result.content, is_error: result.isError });
     }
     history.push({ role: "user", content: results });
+    // The outfit card is the answer. Skipping the model's closing remark saves a
+    // whole round trip; the tool result stays in the history, so the next
+    // question simply follows it.
+    if (shown) return;
   }
 }
 

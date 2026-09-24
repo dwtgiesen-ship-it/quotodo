@@ -16,6 +16,7 @@ type Upload = {
 };
 
 const CONCURRENCY = 3;
+const FRAME_CONCURRENCY = 2;
 
 export function WardrobeApp() {
   const [items, setItems] = useState<WardrobeItem[] | null>(null);
@@ -26,6 +27,8 @@ export function WardrobeApp() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const framingStarted = useRef(new Set<string>());
+  const [framing, setFraming] = useState({ done: 0, total: 0 });
 
   useEffect(() => {
     fetch("/api/items")
@@ -33,6 +36,25 @@ export function WardrobeApp() {
       .then(setItems)
       .catch((e: Error) => setLoadError(e.message));
   }, []);
+
+  // ── Product shots for photos uploaded before framing existed ────────────
+  // Runs by itself in the background; each item is only tried once per visit.
+  useEffect(() => {
+    const todo = (items ?? []).filter((i) => !i.framed && !framingStarted.current.has(i.id));
+    if (!todo.length) return;
+    todo.forEach((i) => framingStarted.current.add(i.id));
+    setFraming((f) => ({ done: f.done, total: f.total + todo.length }));
+    const queue = [...todo];
+    const worker = async () => {
+      for (let item = queue.shift(); item; item = queue.shift()) {
+        const res = await fetch(`/api/items/${item.id}/frame`, { method: "POST" }).catch(() => null);
+        const saved = res?.ok ? ((await res.json()) as WardrobeItem) : null;
+        if (saved) setItems((list) => list?.map((i) => (i.id === saved.id ? saved : i)) ?? null);
+        setFraming((f) => ({ ...f, done: f.done + 1 }));
+      }
+    };
+    for (let n = 0; n < FRAME_CONCURRENCY; n++) worker();
+  }, [items]);
 
   // ── Upload queue ──────────────────────────────────────────────────────────
   const addFiles = useCallback((files: FileList | File[]) => {
@@ -112,14 +134,13 @@ export function WardrobeApp() {
     >
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl">Mijn kast</h1>
-          <p className="mt-1 text-sm text-muted">
-            {items ? `${items.length} stuks` : "Laden…"} · Upload één kledingstuk per foto, Claude herkent de rest.
-          </p>
+          <p className="eyebrow">{items ? `${items.length} stuks` : "Laden…"}</p>
+          <h1 className="mt-1 font-display text-4xl">Mijn kast</h1>
+          <p className="mt-1 text-sm text-muted">Eén kledingstuk per foto. De rest herken ik zelf.</p>
         </div>
         <button
           onClick={() => inputRef.current?.click()}
-          className="flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink shadow-sm transition hover:brightness-110"
+          className="flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-ink transition hover:opacity-85"
         >
           <ImagePlus className="size-4" /> Foto&apos;s toevoegen
         </button>
@@ -145,10 +166,10 @@ export function WardrobeApp() {
             dragging ? "border-accent bg-accent-soft" : "border-line bg-card hover:border-accent",
           )}
         >
-          <Upload className="size-8 text-accent" />
-          <span className="font-display text-2xl">Sleep je kledingfoto&apos;s hierheen</span>
+          <Upload className="size-8 text-ink" />
+          <span className="font-display text-2xl">Voeg je eerste foto&apos;s toe</span>
           <span className="max-w-md text-sm text-muted">
-            Tip: leg of hang elk stuk los op een rustige achtergrond. Schoenen, riemen, tassen en zonnebrillen horen er ook bij — dan kan de stylist complete looks maken.
+            Tik hier of sleep foto&apos;s erin. Eén stuk per foto; vergeet broeken, schoenen, riemen en tassen niet, dan kan de stylist complete looks maken.
           </span>
         </button>
       )}
@@ -198,13 +219,25 @@ export function WardrobeApp() {
         </section>
       )}
 
+      {framing.total > 0 && framing.done < framing.total && (
+        <div className="mt-6 rounded-2xl border border-line bg-card px-4 py-3 text-sm">
+          <div className="flex items-center gap-2">
+            <LoaderCircle className="size-4 animate-spin text-muted" />
+            Foto&apos;s worden netjes uitgesneden · {framing.done} van {framing.total}
+          </div>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-bg2">
+            <div className="h-full rounded-full bg-ink transition-all" style={{ width: `${(framing.done / framing.total) * 100}%` }} />
+          </div>
+        </div>
+      )}
+
       {loadError && <p className="mt-6 rounded-xl bg-accent-soft p-4 text-sm">Kast laden mislukt: {loadError}</p>}
 
       {items && items.length > 0 && (
         <>
           {/* Filters */}
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <label className="flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2 sm:w-64">
+            <label className="flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2.5 focus-within:border-ink sm:w-64">
               <Search className="size-4 text-muted" />
               <input
                 value={query}
@@ -231,21 +264,22 @@ export function WardrobeApp() {
           </div>
 
           {/* Grid */}
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="mt-5 grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {visible.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setOpenId(item.id)}
-                className="group overflow-hidden rounded-2xl border border-line bg-card text-left transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <div className="relative aspect-[3/4] bg-bg2">
+              <button key={item.id} onClick={() => setOpenId(item.id)} className="group text-left">
+                <div className="relative aspect-square overflow-hidden rounded-2xl bg-bg2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageUrl(item)} alt={item.name} loading="lazy" className={cn("size-full object-cover", item.archived && "opacity-40 grayscale")} />
+                  <img
+                    src={imageUrl(item)}
+                    alt={item.name}
+                    loading="lazy"
+                    className={cn("size-full object-cover transition duration-300 group-hover:scale-[1.03]", item.archived && "opacity-40 grayscale")}
+                  />
                   {item.archived && (
                     <span className="absolute left-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-[10px] font-medium text-bg">niet beschikbaar</span>
                   )}
                 </div>
-                <div className="p-3">
+                <div className="px-0.5 pt-2">
                   <p className="line-clamp-1 text-sm font-medium">{item.name}</p>
                   <p className="mt-0.5 line-clamp-1 text-xs text-muted">
                     {categoryLabel(item.category)}
@@ -280,7 +314,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
       onClick={onClick}
       className={cn(
         "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm transition",
-        active ? "border-ink bg-ink text-bg" : "border-line bg-card text-ink2 hover:border-ink2",
+        active ? "border-ink bg-ink text-bg" : "border-line bg-card text-ink2 hover:border-ink",
       )}
     >
       {children}

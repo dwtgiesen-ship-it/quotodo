@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Instrument_Serif } from "next/font/google";
+import { Inter, Inter_Tight } from "next/font/google";
 import "./globals.css";
 
-const sans = DM_Sans({ variable: "--font-dm-sans", subsets: ["latin"] });
-const display = Instrument_Serif({ variable: "--font-instrument-serif", subsets: ["latin"], weight: "400", style: ["normal", "italic"] });
+const sans = Inter({ variable: "--font-inter", subsets: ["latin"] });
+const display = Inter_Tight({ variable: "--font-inter-tight", subsets: ["latin"], weight: ["500", "600"] });
 
 export const metadata: Metadata = {
   title: "Kofferklaar",
@@ -12,10 +12,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f1e9" },
-    { media: "(prefers-color-scheme: dark)", color: "#15130f" },
-  ],
+  themeColor: "#faf9f7",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

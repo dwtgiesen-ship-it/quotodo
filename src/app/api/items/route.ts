@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { analyzePhoto } from "@/lib/analyze";
+import { frameImage } from "@/lib/framing";
 import { MissingKeyError } from "@/lib/anthropic";
 import { itemSelect, toWardrobeItem } from "@/lib/wardrobe";
 
@@ -25,9 +26,14 @@ export async function POST(request: Request) {
   if (bytes.length > 4_000_000) return Response.json({ error: "Foto is te groot." }, { status: 413 });
 
   try {
-    const fields = await analyzePhoto(base64, mediaType as MediaType);
+    const { fields, box } = await analyzePhoto(base64, mediaType as MediaType);
+    // A failed crop shouldn't lose the upload: keep the item, show the original.
+    const display = await frameImage(bytes, box).catch((err) => {
+      console.error("framing failed", err);
+      return null;
+    });
     const row = await prisma.item.create({
-      data: { ...fields, image: bytes, imageType: mediaType },
+      data: { ...fields, image: bytes, imageType: mediaType, display, framed: true },
       select: itemSelect,
     });
     return Response.json(toWardrobeItem(row));

@@ -1,62 +1,67 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Droplets, Lightbulb, Luggage, Plus, ShoppingBag, Sunset, Waves, Wind } from "lucide-react";
+import { Check, Droplets, Lightbulb, Luggage, Plus, RefreshCw, ShoppingBag, Sunset, Waves, Wind } from "lucide-react";
 import { CATEGORIES, imageUrl, type WardrobeItem } from "@/lib/wardrobe";
 import type { OutfitPlan } from "@/lib/chat-types";
 import type { WeatherReport } from "@/lib/weather";
 import { cn } from "@/lib/utils";
 
 type ItemMap = Map<string, WardrobeItem>;
+type LookT = OutfitPlan["days"][number]["looks"][number];
 
-const MOMENT_STYLE: Record<string, string> = {
-  ochtend: "bg-[#f3e6c4] text-[#6b4e0e] dark:bg-[#3a3120] dark:text-[#e8cf8e]",
-  middag: "bg-[#dcebf3] text-[#23506c] dark:bg-[#1c2d38] dark:text-[#a9d0e8]",
-  strand: "bg-[#d6ece6] text-[#1f5b4c] dark:bg-[#1a312b] dark:text-[#9fd8c7]",
-  avond: "bg-[#2b2540] text-[#e4dcff] dark:bg-[#2f2848] dark:text-[#d6cbff]",
-  reis: "bg-accent-soft text-accent",
-};
-
-function momentClass(moment: string) {
-  const key = Object.keys(MOMENT_STYLE).find((k) => moment.toLowerCase().includes(k));
-  return key ? MOMENT_STYLE[key] : "bg-bg2 text-ink2";
-}
-
-export function PlanCard({ plan, items, storageKey }: { plan: OutfitPlan; items: ItemMap; storageKey: string }) {
+export function PlanCard({
+  plan,
+  items,
+  storageKey,
+  onAsk,
+}: {
+  plan: OutfitPlan;
+  items: ItemMap;
+  storageKey: string;
+  /** Sends a follow-up question to the stylist (e.g. "another look"); absent while a reply is running. */
+  onAsk?: (question: string) => void;
+}) {
   return (
     <div className="overflow-hidden rounded-3xl border border-line bg-card">
-      <div className="border-b border-line bg-bg2/60 px-5 py-4">
-        <h3 className="font-display text-3xl leading-tight">{plan.title}</h3>
-        {plan.weather_note && <p className="mt-1 text-sm text-ink2">{plan.weather_note}</p>}
-        {plan.intro && <p className="mt-2 text-sm text-muted">{plan.intro}</p>}
+      <div className="px-5 pb-4 pt-5">
+        <h3 className="font-display text-2xl leading-tight sm:text-3xl">{plan.title}</h3>
+        {plan.weather_note && <p className="mt-1.5 text-sm text-ink2">{plan.weather_note}</p>}
+        {plan.intro && <p className="mt-2 text-sm leading-relaxed text-muted">{plan.intro}</p>}
       </div>
 
-      <div className="divide-y divide-line">
-        {plan.days?.map((day, d) => (
-          <section key={d} className="px-5 py-5">
-            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3">
-              <h4 className="font-semibold">{day.label}</h4>
-              {day.weather && <span className="text-sm text-muted">{day.weather}</span>}
-            </div>
-            <div className="space-y-4">
-              {day.looks?.map((look, l) => (
-                <LookRow key={l} look={look} items={items} />
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
+      {plan.days?.map((day, d) => (
+        <section key={d} className="border-t border-line px-5 py-5">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3">
+            <h4 className="eyebrow !text-ink">{day.label}</h4>
+            {day.weather && <span className="text-xs text-muted">{day.weather}</span>}
+          </div>
+          <div className="space-y-5">
+            {day.looks?.map((look, l) => (
+              <LookRow
+                key={l}
+                look={look}
+                items={items}
+                onAnother={onAsk && (() => onAsk(`Geef me een andere look voor ${day.label}, ${look.moment.toLowerCase()}${look.occasion ? ` (${look.occasion})` : ""}.`))}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
 
       {plan.packing && <Packing plan={plan} packing={plan.packing} items={items} storageKey={storageKey} />}
 
       {plan.gaps && plan.gaps.length > 0 && (
-        <div className="border-t border-line bg-accent-soft/50 px-5 py-4">
-          <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
-            <ShoppingBag className="size-4 text-accent" /> Mist nog in je kast
+        <div className="border-t border-line px-5 py-5">
+          <p className="eyebrow mb-2 flex items-center gap-1.5">
+            <ShoppingBag className="size-3.5" /> Nog aanschaffen
           </p>
-          <ul className="space-y-1 text-sm text-ink2">
+          <ul className="space-y-1.5 text-sm text-ink2">
             {plan.gaps.map((g, i) => (
-              <li key={i}>• {g}</li>
+              <li key={i} className="flex gap-2">
+                <span className="mt-2 size-1 shrink-0 rounded-full bg-sand" />
+                {g}
+              </li>
             ))}
           </ul>
         </div>
@@ -65,38 +70,44 @@ export function PlanCard({ plan, items, storageKey }: { plan: OutfitPlan; items:
   );
 }
 
-function LookRow({ look, items }: { look: OutfitPlan["days"][number]["looks"][number]; items: ItemMap }) {
+function LookRow({ look, items, onAnother }: { look: LookT; items: ItemMap; onAnother?: () => void }) {
   const pieces = (look.item_ids ?? []).map((id) => items.get(id)).filter((i): i is WardrobeItem => !!i);
+  const missing = look.missing ?? [];
   return (
-    <div className="rounded-2xl border border-line bg-bg/60 p-3">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", momentClass(look.moment))}>{look.moment}</span>
-        {look.occasion && <span className="text-sm text-ink2">{look.occasion}</span>}
+    <div>
+      <div className="mb-2 flex items-baseline gap-2">
+        <span className="text-sm font-semibold">{look.moment}</span>
+        {look.occasion && <span className="truncate text-sm text-muted">{look.occasion}</span>}
       </div>
-      <div className="scroll-x -mx-3 flex gap-2 overflow-x-auto px-3 pb-1">
+      <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5">
         {pieces.map((item) => (
-          <figure key={item.id} className="w-24 shrink-0 sm:w-28">
+          <figure key={item.id}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imageUrl(item)} alt={item.name} loading="lazy" className="aspect-[3/4] w-full rounded-xl bg-bg2 object-cover" />
+            <img src={imageUrl(item)} alt={item.name} loading="lazy" className="aspect-square w-full rounded-xl bg-bg2 object-cover" />
             <figcaption className="mt-1 line-clamp-2 text-[11px] leading-tight text-ink2">{item.name}</figcaption>
           </figure>
         ))}
-        {(look.missing ?? []).map((name) => (
-          <figure key={name} className="w-24 shrink-0 sm:w-28">
-            <div className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line bg-bg2/40 p-2 text-center">
+        {missing.map((name) => (
+          <figure key={name}>
+            <div className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line bg-bg p-2 text-center">
               <Plus className="size-4 text-muted" />
               <span className="text-[10px] leading-tight text-muted">nog niet in je kast</span>
             </div>
             <figcaption className="mt-1 line-clamp-2 text-[11px] leading-tight text-ink2">{name}</figcaption>
           </figure>
         ))}
-        {pieces.length === 0 && !look.missing?.length && <p className="text-sm text-muted">Geen stukken gevonden in je kast.</p>}
       </div>
-      <p className="mt-2 text-sm text-ink2">{look.why}</p>
+      {pieces.length === 0 && missing.length === 0 && <p className="text-sm text-muted">Geen stukken gevonden in je kast.</p>}
+      <p className="mt-2 text-sm leading-relaxed text-ink2">{look.why}</p>
       {look.tip && (
-        <p className="mt-1.5 flex gap-1.5 text-sm text-muted">
-          <Lightbulb className="mt-0.5 size-3.5 shrink-0 text-accent" /> {look.tip}
+        <p className="mt-1 flex gap-1.5 text-sm text-muted">
+          <Lightbulb className="mt-0.5 size-3.5 shrink-0 text-sand" /> {look.tip}
         </p>
+      )}
+      {onAnother && (
+        <button onClick={onAnother} className="mt-2 flex items-center gap-1.5 text-xs font-medium text-ink2 underline-offset-4 hover:text-ink hover:underline">
+          <RefreshCw className="size-3" /> Andere look
+        </button>
       )}
     </div>
   );
@@ -142,10 +153,10 @@ function Packing({ plan, packing, items, storageKey }: { plan: OutfitPlan; packi
   const done = [...checked].length;
 
   return (
-    <div className="border-t border-line px-5 py-5">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="flex items-center gap-2 font-semibold">
-          <Luggage className="size-4 text-accent" /> In de koffer
+    <div className="border-t border-line bg-bg/60 px-5 py-5">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="flex items-center gap-2 font-display text-lg">
+          <Luggage className="size-4" /> In de koffer
         </p>
         {total > 0 && (
           <span className="text-xs text-muted">
@@ -156,10 +167,10 @@ function Packing({ plan, packing, items, storageKey }: { plan: OutfitPlan; packi
 
       {groups.map((group) => (
         <div key={group.label} className="mb-4">
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+          <p className="eyebrow mb-1.5">
             {group.label} · {group.items.length}
           </p>
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
             {group.items.map((item) => {
               const key = `item:${item.id}`;
               const on = checked.has(key);
@@ -187,7 +198,7 @@ function Packing({ plan, packing, items, storageKey }: { plan: OutfitPlan; packi
       <div className="grid gap-4 sm:grid-cols-2">
         {(packing.essentials ?? []).map((group) => (
           <div key={group.group}>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">{group.group}</p>
+            <p className="eyebrow mb-1.5">{group.group}</p>
             <ul className="space-y-1">
               {(group.items ?? []).map((thing) => {
                 const key = `${group.group}:${thing}`;
@@ -198,7 +209,7 @@ function Packing({ plan, packing, items, storageKey }: { plan: OutfitPlan; packi
                       <span
                         className={cn(
                           "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border transition",
-                          on ? "border-olive bg-olive text-white" : "border-line bg-card",
+                          on ? "border-olive bg-olive text-white" : "border-muted/60 bg-card",
                         )}
                       >
                         {on && <Check className="size-3" />}
@@ -236,7 +247,7 @@ function dayName(iso: string) {
 
 export function WeatherStrip({ report }: { report: WeatherReport }) {
   return (
-    <div className="rounded-2xl border border-line bg-card px-4 py-3">
+    <div className="rounded-3xl border border-line bg-card px-4 py-3">
       <p className="mb-2 text-xs text-muted">
         Weer in <span className="font-medium text-ink2">{report.place}</span>
         {report.region ? `, ${report.region}` : ""}
@@ -244,7 +255,7 @@ export function WeatherStrip({ report }: { report: WeatherReport }) {
       </p>
       <div className="scroll-x flex gap-2 overflow-x-auto">
         {report.days.map((d) => (
-          <div key={d.date} className="min-w-[8.5rem] shrink-0 rounded-xl bg-bg2/70 px-3 py-2 text-xs">
+          <div key={d.date} className="min-w-[8.5rem] shrink-0 rounded-2xl bg-bg px-3 py-2 text-xs">
             <div className="flex items-center justify-between">
               <span className="font-medium capitalize text-ink2">{dayName(d.date)}</span>
               <span className="text-lg">{icon(d.summary)}</span>

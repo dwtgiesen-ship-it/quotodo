@@ -1,10 +1,8 @@
 @import "tailwindcss";
 
-@custom-variant dark (@media (prefers-color-scheme: dark));
-
 @theme inline {
-  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter-tight), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
   --color-bg: var(--bg);
   --color-bg2: var(--bg2);
@@ -18,40 +16,26 @@
   --color-accent-ink: var(--accent-ink);
   --color-olive: var(--olive);
   --color-sky: var(--sky);
+  --color-sand: var(--sand);
 }
 
+/* Light "boutique" look on purpose (also when the phone is in dark mode):
+   off-white page, white cards, black type, product shots on a soft grey. */
 :root {
-  --bg: #f6f1e9;        /* linen */
-  --bg2: #efe7da;
-  --card: #fffdf9;
-  --line: #e2d8c8;
-  --ink: #1d1a16;
-  --ink2: #4a443b;
-  --muted: #8a8173;
-  --accent: #b9572b;    /* terracotta */
-  --accent-soft: #f4e2d6;
+  --bg: #faf9f7;
+  --bg2: #f1efeb;       /* product-photo backdrop, subtle fills */
+  --card: #ffffff;
+  --line: #e8e5df;
+  --ink: #151515;
+  --ink2: #46433e;
+  --muted: #8d887f;
+  --accent: #151515;    /* primary buttons and the logo mark */
+  --accent-soft: #f1efeb;
   --accent-ink: #ffffff;
-  --olive: #5d6b3f;
+  --olive: #56663a;     /* "ingepakt" checks */
   --sky: #3f6e8c;
+  --sand: #a8865b;      /* small warm highlights */
   color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #15130f;
-    --bg2: #1d1a15;
-    --card: #221f19;
-    --line: #36312a;
-    --ink: #f3ede3;
-    --ink2: #cfc6b8;
-    --muted: #938a7c;
-    --accent: #e07a4a;
-    --accent-soft: #3a261b;
-    --accent-ink: #1a0f09;
-    --olive: #a3b37c;
-    --sky: #86b4d3;
-    color-scheme: dark;
-  }
 }
 
 html,
@@ -66,8 +50,17 @@ body {
 
 .font-display {
   font-family: var(--font-display);
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+/* Small uppercase section labels, boutique style */
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 /* Subtle scrollbar for horizontal strips */

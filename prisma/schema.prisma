@@ -35,8 +35,10 @@ model Item {
   description String   @default("")
   notes       String   @default("") // user's own notes ("zit krap", "alleen voor bruiloften")
   archived    Boolean  @default(false) // e.g. in de was / uitgeleend
-  image       Bytes
+  image       Bytes // the original upload
   imageType   String   @default("image/jpeg")
+  display     Bytes? // square, cropped product shot shown in the app (JPEG); see src/lib/framing.ts
+  framed      Boolean  @default(false) // display has been made (or tried) for this photo
 
   @@index([category])
 }

@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Jouw kast, jouw stylist: outfits en paklijst voor elke reis.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f6f1e9",
-    theme_color: "#b9572b",
+    background_color: "#faf9f7",
+    theme_color: "#faf9f7",
     icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
   };
 }

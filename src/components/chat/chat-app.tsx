@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, History, Plus, Shirt, Trash2, X } from "lucide-react";
+import { ArrowRight, ArrowUp, History, Plus, Shirt, Trash2, X } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { PlanCard, WeatherStrip } from "./plan-card";
 import type { StylistEvent, ViewMessage, ViewPart } from "@/lib/chat-types";
@@ -12,10 +12,10 @@ import { cn } from "@/lib/utils";
 type ChatSummary = { id: string; title: string; updatedAt: string };
 
 const SUGGESTIONS = [
-  "Morgen ga ik 3 dagen naar Porto Cervo. Wat trek ik 's ochtends, 's middags en 's avonds aan, en wat moet er in de koffer?",
-  "Ik ga vanavond uit eten in Monaco. Wat trek ik aan?",
-  "Wat trek ik vandaag aan?",
-  "Volgend weekend 2 nachten Parijs: stad overdag, 's avonds een cocktailbar.",
+  { label: "Wat trek ik vandaag aan?", prompt: "Wat trek ik vandaag aan?" },
+  { label: "Vanavond uit eten", prompt: "Ik ga vanavond uit eten. Wat trek ik aan?" },
+  { label: "3 dagen Porto Cervo", prompt: "Morgen ga ik 3 dagen naar Porto Cervo. Welke outfits neem ik mee en wat moet er in de koffer?" },
+  { label: "Weekend Parijs", prompt: "Volgend weekend 2 nachten Parijs: stad overdag, 's avonds een cocktailbar." },
 ];
 
 export function ChatApp() {
@@ -230,13 +230,11 @@ export function ChatApp() {
           <div className="flex-1 overflow-y-auto px-4">
             <div className="mx-auto max-w-3xl py-6">
               {empty ? (
-                <div className="pt-6 sm:pt-12">
-                  <h1 className="font-display text-5xl leading-[1.05] sm:text-6xl">
-                    Waar ga je <em className="text-accent">heen?</em>
-                  </h1>
+                <div className="pt-8 sm:pt-16">
+                  <p className="eyebrow">Jouw stylist</p>
+                  <h1 className="mt-2 font-display text-4xl leading-[1.05] sm:text-5xl">Waar ga je heen?</h1>
                   <p className="mt-3 max-w-lg text-ink2">
-                    Vertel waar en wanneer. Ik check het weer, kies outfits uit je eigen kast voor ochtend, middag en avond, en maak je paklijst — van
-                    oplader tot paspoort.
+                    Zeg waar en wanneer. Ik check het weer, kies outfits uit je eigen kast en maak je paklijst.
                   </p>
                   {itemsLoaded && activeItems === 0 && (
                     <Link
@@ -250,14 +248,15 @@ export function ChatApp() {
                       </span>
                     </Link>
                   )}
-                  <div className="mt-8 grid gap-2 sm:grid-cols-2">
+                  <div className="mt-8 divide-y divide-line overflow-hidden rounded-3xl border border-line bg-card">
                     {SUGGESTIONS.map((s) => (
                       <button
-                        key={s}
-                        onClick={() => send(s)}
-                        className="rounded-2xl border border-line bg-card px-4 py-3 text-left text-sm text-ink2 transition hover:border-ink2 hover:text-ink"
+                        key={s.label}
+                        onClick={() => send(s.prompt)}
+                        className="flex w-full items-center justify-between px-5 py-4 text-left text-[15px] font-medium transition hover:bg-bg"
                       >
-                        {s}
+                        {s.label}
+                        <ArrowRight className="size-4 text-muted" />
                       </button>
                     ))}
                   </div>
@@ -265,7 +264,7 @@ export function ChatApp() {
               ) : (
                 <div className="space-y-6">
                   {messages.map((m, i) => (
-                    <Bubble key={i} message={m} items={itemMap} keyPrefix={`${chatId}:${i}`} />
+                    <Bubble key={i} message={m} items={itemMap} keyPrefix={`${chatId}:${i}`} onAsk={busy ? undefined : send} />
                   ))}
                   {live && <Bubble message={{ role: "assistant", parts: live }} items={itemMap} keyPrefix={`${chatId}:live`} />}
                   {status && (
@@ -288,7 +287,7 @@ export function ChatApp() {
           {/* Composer */}
           <div className="border-t border-line bg-bg/90 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
             <form
-              className="mx-auto flex max-w-3xl items-end gap-2 rounded-3xl border border-line bg-card p-2 pl-4 shadow-sm focus-within:border-ink2"
+              className="mx-auto flex max-w-3xl items-end gap-2 rounded-[1.75rem] border border-line bg-card p-1.5 pl-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus-within:border-ink"
               onSubmit={(e) => {
                 e.preventDefault();
                 send(input);
@@ -309,8 +308,8 @@ export function ChatApp() {
                   }
                 }}
                 rows={1}
-                placeholder={empty ? "Bijv. morgen 3 dagen naar Porto Cervo…" : "Vraag verder: andere schoenen? minder koffer?"}
-                className="max-h-40 flex-1 resize-none bg-transparent py-2 text-[16px] outline-none placeholder:text-muted"
+                placeholder={empty ? "Bijv. 3 dagen Porto Cervo…" : "Vraag verder…"}
+                className="max-h-40 flex-1 resize-none bg-transparent py-2.5 text-[16px] outline-none placeholder:text-muted"
               />
               <button
                 type="submit"
@@ -328,11 +327,21 @@ export function ChatApp() {
   );
 }
 
-function Bubble({ message, items, keyPrefix }: { message: ViewMessage; items: Map<string, WardrobeItem>; keyPrefix: string }) {
+function Bubble({
+  message,
+  items,
+  keyPrefix,
+  onAsk,
+}: {
+  message: ViewMessage;
+  items: Map<string, WardrobeItem>;
+  keyPrefix: string;
+  onAsk?: (question: string) => void;
+}) {
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
-        <p className="max-w-[85%] whitespace-pre-wrap rounded-3xl rounded-br-md bg-ink px-4 py-2.5 text-bg">{message.parts.map((p) => (p.kind === "text" ? p.text : "")).join("")}</p>
+        <p className="max-w-[85%] whitespace-pre-wrap rounded-3xl rounded-br-lg bg-ink px-4 py-2.5 text-[15px] text-bg">{message.parts.map((p) => (p.kind === "text" ? p.text : "")).join("")}</p>
       </div>
     );
   }
@@ -342,7 +351,7 @@ function Bubble({ message, items, keyPrefix }: { message: ViewMessage; items: Ma
         <Fragment key={i}>
           {part.kind === "text" && <RichText text={part.text} />}
           {part.kind === "weather" && <WeatherStrip report={part.report} />}
-          {part.kind === "plan" && <PlanCard plan={part.plan} items={items} storageKey={`kk:packed:${keyPrefix}:${i}`} />}
+          {part.kind === "plan" && <PlanCard plan={part.plan} items={items} storageKey={`kk:packed:${keyPrefix}:${i}`} onAsk={onAsk} />}
         </Fragment>
       ))}
     </div>

@@ -25,6 +25,7 @@ export function ItemSheet({
     tagsText: item.styleTags.join(", "),
   });
   const [saving, setSaving] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -89,7 +90,15 @@ export function ItemSheet({
       >
         <div className="relative h-56 shrink-0 bg-bg2 sm:h-auto sm:w-2/5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imageUrl(item)} alt={item.name} className="size-full object-contain" />
+          <img src={imageUrl(item, { original: showOriginal })} alt={item.name} className="size-full object-contain" />
+          {item.framed && (
+            <button
+              onClick={() => setShowOriginal((v) => !v)}
+              className="absolute bottom-3 left-3 rounded-full bg-card/90 px-3 py-1 text-xs font-medium text-ink2 backdrop-blur"
+            >
+              {showOriginal ? "Toon uitsnede" : "Toon originele foto"}
+            </button>
+          )}
           <button onClick={onClose} className="absolute right-3 top-3 rounded-full bg-card/90 p-1.5 sm:hidden">
             <X className="size-4" />
           </button>
@@ -179,7 +188,7 @@ export function ItemSheet({
   );
 }
 
-const inputCls = "w-full rounded-xl border border-line bg-bg px-3 py-2 outline-none focus:border-ink2";
+const inputCls = "w-full rounded-xl border border-line bg-bg px-3 py-2 outline-none focus:border-ink";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -202,7 +211,7 @@ function Scale({ label, value, labels, onChange }: { label: string; value: numbe
             key={l}
             type="button"
             onClick={() => onChange(i + 1)}
-            className={cn("h-2 flex-1 rounded-full transition", i < value ? "bg-accent" : "bg-line")}
+            className={cn("h-1.5 flex-1 rounded-full transition", i < value ? "bg-ink" : "bg-line")}
             aria-label={l}
           />
         ))}

@@ -39,11 +39,13 @@ export type WardrobeItem = {
   description: string;
   notes: string;
   archived: boolean;
+  /** A cropped product shot exists (or was attempted) for this photo. */
+  framed: boolean;
   updatedAt: string;
 };
 
 /** Fields Claude fills in from a photo (and the user can edit). */
-export type ItemFields = Omit<WardrobeItem, "id" | "archived" | "updatedAt" | "notes">;
+export type ItemFields = Omit<WardrobeItem, "id" | "archived" | "framed" | "updatedAt" | "notes">;
 
 export const itemSelect = {
   id: true,
@@ -60,6 +62,7 @@ export const itemSelect = {
   description: true,
   notes: true,
   archived: true,
+  framed: true,
   updatedAt: true,
 } as const;
 
@@ -67,9 +70,9 @@ export function toWardrobeItem(row: Omit<WardrobeItem, "updatedAt"> & { updatedA
   return { ...row, updatedAt: row.updatedAt.toISOString() };
 }
 
-export function imageUrl(item: Pick<WardrobeItem, "id" | "updatedAt">): string {
+export function imageUrl(item: Pick<WardrobeItem, "id" | "updatedAt">, { original = false } = {}): string {
   // updatedAt busts the (long-lived) browser cache when a photo is replaced.
-  return `/api/items/${item.id}/image?v=${encodeURIComponent(item.updatedAt)}`;
+  return `/api/items/${item.id}/image?v=${encodeURIComponent(item.updatedAt)}${original ? "&original=1" : ""}`;
 }
 
 /** One compact line per item — this is how the stylist "sees" the wardrobe. */
