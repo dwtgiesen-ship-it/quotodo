@@ -1,13 +1,8 @@
-// Schedulemode — application schema (PostgreSQL).
-// Enum-ish fields are strings and list/JSON fields (serviceIds, tags) are stored
-// as JSON strings; the app-layer TypeScript unions in
-// src/app/salonflow/lib/types.ts constrain the values. All field types here are
-// portable, so the same schema runs on any Postgres (Neon, Supabase, Vercel
-// Postgres, RDS, or a local container — see docker-compose.yml).
+// Kofferklaar — application schema (PostgreSQL).
 //
 // DATABASE_URL  — pooled connection string used at runtime.
-// DIRECT_URL    — direct (non-pooled) connection for `prisma db push`/migrations.
-//                 On Neon/Supabase set both; elsewhere use the same value.
+// DIRECT_URL    — direct (non-pooled) connection for `prisma db push`.
+//                 On Neon/Vercel Postgres set both; elsewhere use the same value.
 
 generator client {
   provider = "prisma-client-js"
@@ -20,358 +15,38 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Salon {
-  id                 String  @id @default(cuid())
-  name               String
-  slug               String  @unique
-  vertical           String
-  currency           String  @default("EUR")
-  timezone           String  @default("Europe/Amsterdam")
-  onboardingComplete Boolean @default(false)
-  calendarConnected  Boolean @default(false)
-  weeklyHours        String  @default("{}") // JSON { mon:[startMin,endMin]|null, ... }
-
-  services        Service[]
-  staff           Staff[]
-  clients         Client[]
-  appointments    Appointment[]
-  membershipPlans MembershipPlan[]
-  campaigns       Campaign[]
-  waitlist        WaitlistEntry[]
-}
-
-model Service {
-  id             String  @id @default(cuid())
-  salonId        String
-  salon          Salon   @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  name           String
-  category       String
-  durationMin    Int
-  priceMinor     Int
-  depositMinor   Int?
-  bookableOnline Boolean @default(true)
-  sortOrder      Int     @default(0)
-
-  appointments Appointment[]
-
-  @@index([salonId])
-}
-
-model Staff {
-  id             String  @id @default(cuid())
-  salonId        String
-  salon          Salon   @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  name           String
-  initials       String
-  color          String  @default("#8B5FB8")
-  role           String  @default("staff")
-  bookableOnline Boolean @default(true)
-  serviceIds     String  @default("[]") // JSON array of service ids
-  weeklyHours    String  @default("{}") // JSON per-staff hours (overrides salon)
-  archived       Boolean @default(false)
-
-  appointments Appointment[]
-
-  @@index([salonId])
-}
-
-model Client {
-  id              String @id @default(cuid())
-  salonId         String
-  salon           Salon  @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  firstName       String
-  lastName        String @default("")
-  email           String @default("")
-  phone           String @default("")
-  notes           String @default("")
-  since           String // ISO date (yyyy-mm-dd)
-  totalSpendMinor Int    @default(0)
-  loyaltyPoints   Int    @default(0)
-  tier            String @default("standard")
-  tags            String @default("[]") // JSON array
-  profileType     String @default("generic") // pet | nail | generic
-  profileData     String @default("{}") // JSON vertical profile
-
-  appointments    Appointment[]
-  memberships     MembershipUser[]
-  loyaltyLedger   LoyaltyTransaction[]
-  messages        Message[]
-  photos          CustomerPhoto[]
-  waitlist        WaitlistEntry[]
-
-  @@index([salonId])
-}
-
-model Appointment {
-  id        String   @id @default(cuid())
-  salonId   String
-  salon     Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  day       Int
-  start     Float
-  end       Float
-  serviceId String
-  service   Service  @relation(fields: [serviceId], references: [id])
-  staffId   String
-  staff     Staff    @relation(fields: [staffId], references: [id])
-  clientId  String
-  client    Client   @relation(fields: [clientId], references: [id])
-  status    String   @default("booked")
-  source    String   @default("dashboard")
-  isNew     Boolean  @default(false)
-  starred   Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@index([salonId, day])
-  @@index([salonId, staffId, day])
-  @@index([salonId, clientId])
-}
-
-model MembershipPlan {
-  id                String  @id @default(cuid())
-  salonId           String
-  salon             Salon   @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  name              String
-  priceMinor        Int
-  interval          String  @default("month") // month | year
-  includedServices  String  @default("[]")    // JSON [{serviceId, quantity}]
-  discountPct       Float   @default(0)
-  loyaltyMultiplier Float   @default(1)
-  active            Boolean @default(true)
-  sortOrder         Int     @default(0)
-
-  subscribers MembershipUser[]
-
-  @@index([salonId])
-}
-
-model MembershipUser {
-  id        String   @id @default(cuid())
-  salonId   String
-  planId    String
-  plan      MembershipPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
-  clientId  String
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  status    String   @default("active") // active | past_due | cancelled
-  renewsAt  String?   // ISO date
-  createdAt DateTime @default(now())
-
-  @@index([salonId, clientId])
-}
-
-model LoyaltyTransaction {
-  id        String   @id @default(cuid())
-  salonId   String
-  clientId  String
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  delta     Int      // +earn / -redeem
-  reason    String   // earn | redeem | referral | birthday | adjustment
-  note      String   @default("")
-  createdAt DateTime @default(now())
-
-  @@index([salonId, clientId])
-}
-
-model Campaign {
-  id               String  @id @default(cuid())
-  salonId          String
-  salon            Salon   @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  type             String  // confirmation | reminder | review | rebooking | birthday | win_back
-  channel          String  // sms | email | whatsapp
-  template         String
-  triggerOffsetMin Int?
-  active           Boolean @default(true)
-
-  messages Message[]
-
-  @@index([salonId])
-}
-
-model Message {
-  id         String   @id @default(cuid())
-  salonId    String
-  campaignId String?
-  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  clientId   String
-  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  channel    String
-  status     String   @default("sent") // queued | sent | delivered | read | failed
-  body       String
-  createdAt  DateTime @default(now())
-
-  @@index([salonId, clientId])
-}
-
-model WaitlistEntry {
+// One piece of clothing (or shoes / accessory) from the wardrobe.
+// The descriptive fields are filled in by Claude from the photo and can be
+// corrected by hand; the stylist only ever sees these text fields.
+model Item {
   id          String   @id @default(cuid())
-  salonId     String
-  salon       Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  clientId    String
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  serviceId   String
-  windowDay   Int      // preferred day index, -1 = any
   createdAt   DateTime @default(now())
-  filledAt    DateTime?
+  updatedAt   DateTime @updatedAt
+  name        String
+  category    String // see CATEGORIES in src/lib/wardrobe.ts
+  subcategory String   @default("")
+  colors      String[]
+  pattern     String   @default("")
+  material    String   @default("")
+  fit         String   @default("")
+  formality   Int      @default(3) // 1 = sport/strand … 5 = gala
+  warmth      Int      @default(3) // 1 = hittebestendig … 5 = winter
+  styleTags   String[]
+  description String   @default("")
+  notes       String   @default("") // user's own notes ("zit krap", "alleen voor bruiloften")
+  archived    Boolean  @default(false) // e.g. in de was / uitgeleend
+  image       Bytes
+  imageType   String   @default("image/jpeg")
 
-  @@index([salonId])
+  @@index([category])
 }
 
-model CustomerPhoto {
-  id         String   @id @default(cuid())
-  salonId    String
-  clientId   String
-  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  url        String
-  kind       String   @default("reference") // before | after | reference
-  createdAt  DateTime @default(now())
-
-  @@index([salonId, clientId])
-}
-
-// ─── Calendar synchronization ────────────────────────────────────────────────
-
-model CalendarConnection {
-  id              String    @id @default(cuid())
-  salonId         String
-  staffId         String    // the staff member whose calendar this is
-  locationId      String?   // optional multi-location scoping
-  provider        String    // google | microsoft | apple
-  externalAccount String    // email / principal
-  accessToken     String    @default("") // encrypted at rest in production (KMS)
-  refreshToken    String    @default("") // encrypted at rest in production (KMS)
-  tokenExpiresAt  DateTime?
-  syncToken       String?   // Google syncToken / Graph deltaLink / CalDAV ctag
-  status          String    @default("active") // active | error | paused | disconnected
-  direction       String    @default("two_way") // two_way | inbound | outbound
-  lastSyncedAt    DateTime?
-  lastError       String    @default("")
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([salonId])
-  @@index([salonId, staffId])
-  @@index([status])
-}
-
-model CalendarChannel {
-  id           String   @id @default(cuid())
-  salonId      String
-  connectionId String
-  provider     String
-  channelId    String   // Graph subscriptionId / Google channel id
-  resourceId   String   @default("")
-  clientState  String   @default("") // secret echoed back in webhooks for verification
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-
-  @@index([connectionId])
-  @@index([expiresAt])
-}
-
-// Maps one of OUR appointments to its mirror event in an external calendar.
-// The stored etag is the echo-loop guard: an inbound change carrying our last
-// known etag is our own write coming back and is ignored.
-model ExternalEventLink {
-  id            String   @id @default(cuid())
-  salonId       String
-  connectionId  String
-  appointmentId String
-  externalId    String
-  etag          String   @default("")
-  updatedAt     DateTime @updatedAt
-
-  @@unique([connectionId, appointmentId])
-  @@index([salonId])
-  @@index([connectionId, externalId])
-}
-
-// Inbound external events that are NOT ours become unavailability ("busy") that
-// the booking engine respects, preventing double-booking against personal events.
-model ExternalBusyBlock {
-  id           String   @id @default(cuid())
-  salonId      String
-  connectionId String
-  staffId      String
-  externalId   String
-  etag         String   @default("")
-  summary      String   @default("Busy")
-  startsAt     DateTime
-  endsAt       DateTime
-  day          Int      @default(-1)   // demo-week coordinate (-1 if outside the visible week)
-  start        Float    @default(0)
-  end          Float    @default(0)
-  cancelled    Boolean  @default(false)
-  updatedAt    DateTime @updatedAt
-
-  @@unique([connectionId, externalId])
-  @@index([salonId, staffId])
-}
-
-// Durable retry queue. In production this is BullMQ/SQS; here it is DB-backed so
-// the demo runs with no broker. Workers are stateless and idempotent.
-model SyncJob {
-  id           String   @id @default(cuid())
-  salonId      String
-  connectionId String   @default("")
-  type         String   // pull | push | watch_renew | reconcile
-  payload      String   @default("{}")
-  status       String   @default("queued") // queued | running | done | failed | dead
-  attempts     Int      @default(0)
-  maxAttempts  Int      @default(5)
-  runAfter     DateTime @default(now())
-  lastError    String   @default("")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@index([status, runAfter])
-  @@index([salonId])
-}
-
-model SyncLog {
-  id           String   @id @default(cuid())
-  salonId      String
-  connectionId String   @default("")
-  level        String   @default("info") // info | warn | error
-  event        String
-  message      String   @default("")
-  createdAt    DateTime @default(now())
-
-  @@index([salonId, createdAt])
-  @@index([connectionId, createdAt])
-}
-
-// ─── Authentication ──────────────────────────────────────────────────────────
-
-model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String   @default("")
-  passwordHash String
-  salonId      String   // the salon this user belongs to
-  role         String   @default("owner") // owner | manager | staff | receptionist
-  createdAt    DateTime @default(now())
-
-  @@index([salonId])
-}
-
-model Session {
-  id        String   @id // opaque random token (stored in the cookie)
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-}
-
-model Invitation {
+// A stylist conversation. `messages` holds the raw Claude API history
+// (user / assistant / tool blocks); the UI is rendered from it directly.
+model Chat {
   id        String   @id @default(cuid())
-  salonId   String
-  email     String
-  name      String   @default("")
-  role      String   @default("staff") // manager | staff | receptionist
-  token     String   @unique
-  status    String   @default("pending") // pending | accepted | revoked
   createdAt DateTime @default(now())
-  expiresAt DateTime
-
-  @@index([salonId])
+  updatedAt DateTime @updatedAt
+  title     String   @default("Nieuw gesprek")
+  messages  Json     @default("[]")
 }
